@@ -2,7 +2,6 @@
 API URL configuration for ExpenseIQ.
 Mirrors the Node.js Express router structure:
   /api/v1/expenses/*
-  /api/v1/income/*
   /api/v1/analytics/*
   /api/v1/categories/*
   /api/v1/budget/*
@@ -18,11 +17,7 @@ from .views import (
     ExpenseReceiptUploadView,
 )
 from .views.ai_views import AIAssistantView
-from .views.income_views import (
-    IncomeListCreateView,
-    IncomeDetailView,
-    IncomeMonthlySummaryView,
-)
+
 from .views.general_views import (
     CategoryListCreateView,
     CategoryDetailView,
@@ -42,7 +37,6 @@ from .views.analytics_views import (
     AnalyticsMonthlyBarChartView,
     AnalyticsWeeklyLineChartView,
     AnalyticsCategoryPieChartView,
-    AnalyticsIncomeExpenseChartView,
     AnalyticsCategoryView,
 )
 
@@ -53,11 +47,6 @@ urlpatterns = [
     path('expenses/recurring', ExpenseRecurringView.as_view(), name='expense-recurring'),
     path('expenses/<int:pk>/', ExpenseDetailView.as_view(), name='expense-detail'),
     path('expenses/<int:pk>/receipt', ExpenseReceiptUploadView.as_view(), name='expense-receipt'),
-
-    # ───── Income Routes ─────
-    path('income/', IncomeListCreateView.as_view(), name='income-list-create'),
-    path('income/monthly-summary', IncomeMonthlySummaryView.as_view(), name='income-monthly-summary'),
-    path('income/<int:pk>/', IncomeDetailView.as_view(), name='income-detail'),
 
     # ───── Category Routes ─────
     path('categories', CategoryListCreateView.as_view(), name='category-list-create'),
@@ -84,7 +73,6 @@ urlpatterns = [
     path('analytics/charts/monthly-bar', AnalyticsMonthlyBarChartView.as_view(), name='analytics-monthly-bar'),
     path('analytics/charts/weekly-line', AnalyticsWeeklyLineChartView.as_view(), name='analytics-weekly-line'),
     path('analytics/charts/category-pie', AnalyticsCategoryPieChartView.as_view(), name='analytics-category-pie'),
-    path('analytics/charts/income-expense', AnalyticsIncomeExpenseChartView.as_view(), name='analytics-income-expense'),
     path('analytics/categories', AnalyticsCategoryView.as_view(), name='analytics-categories'),
     path('ai/assistant', AIAssistantView.as_view(), name='ai-assistant'),
 ]

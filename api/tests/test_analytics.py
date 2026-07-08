@@ -7,7 +7,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from api.models import Expense, Income, Category
+from api.models import Expense, Category
 from .base import BaseAPITestCase
 
 
@@ -26,8 +26,7 @@ class AnalyticsKPIsTests(BaseAPITestCase):
         data = self.assert_success_response(response)
         kpis = data['data']
         expected_keys = [
-            'totalExpense', 'totalIncome', 'remainingBalance',
-            'savingsRate', 'monthlyExpense', 'weeklyExpense',
+            'totalExpense', 'monthlyExpense', 'weeklyExpense',
             'dailyAverage', 'topSpendingCategory', 'highestExpense',
             'expenseDistribution',
         ]
@@ -39,27 +38,6 @@ class AnalyticsKPIsTests(BaseAPITestCase):
         response = self.client.get('/api/v1/analytics/kpis')
         data = self.assert_success_response(response)
         self.assertIsInstance(data['data']['totalExpense'], (int, float))
-
-    def test_kpis_total_income_is_numeric(self):
-        """totalIncome should be a number."""
-        response = self.client.get('/api/v1/analytics/kpis')
-        data = self.assert_success_response(response)
-        self.assertIsInstance(data['data']['totalIncome'], (int, float))
-
-    def test_kpis_remaining_balance_calculation(self):
-        """remainingBalance should be totalIncome - totalExpense."""
-        response = self.client.get('/api/v1/analytics/kpis')
-        data = self.assert_success_response(response)
-        kpis = data['data']
-        expected = kpis['totalIncome'] - kpis['totalExpense']
-        self.assertAlmostEqual(kpis['remainingBalance'], expected, places=2)
-
-    def test_kpis_savings_rate_range(self):
-        """savingsRate should be between -100 and 100."""
-        response = self.client.get('/api/v1/analytics/kpis')
-        data = self.assert_success_response(response)
-        self.assertGreaterEqual(data['data']['savingsRate'], -100)
-        self.assertLessEqual(data['data']['savingsRate'], 100)
 
     def test_kpis_expense_distribution_is_list(self):
         """expenseDistribution should be a list of category breakdowns."""
@@ -79,12 +57,9 @@ class AnalyticsKPIsTests(BaseAPITestCase):
     def test_kpis_with_no_data(self):
         """Should handle empty database gracefully."""
         Expense.objects.all().delete()
-        Income.objects.all().delete()
         response = self.client.get('/api/v1/analytics/kpis')
         data = self.assert_success_response(response)
         self.assertEqual(data['data']['totalExpense'], 0)
-        self.assertEqual(data['data']['totalIncome'], 0)
-        self.assertEqual(data['data']['remainingBalance'], 0)
 
 
 class AnalyticsWeeklyTests(BaseAPITestCase):
@@ -254,32 +229,6 @@ class AnalyticsCategoryPieChartTests(BaseAPITestCase):
         for item in data['data']:
             self.assertGreaterEqual(item['total'], 0)
 
-
-class AnalyticsIncomeExpenseChartTests(BaseAPITestCase):
-    """GET /api/v1/analytics/charts/income-expense"""
-
-    def test_income_expense_returns_success(self):
-        """Should return 200."""
-        response = self.client.get('/api/v1/analytics/charts/income-expense')
-        data = self.assert_success_response(response)
-        self.assertIsInstance(data['data'], list)
-
-    def test_income_expense_has_6_months(self):
-        """Should return data for 6 months."""
-        response = self.client.get('/api/v1/analytics/charts/income-expense')
-        data = self.assert_success_response(response)
-        self.assertEqual(len(data['data']), 6)
-
-    def test_income_expense_item_format(self):
-        """Each item should have label, expense, income."""
-        response = self.client.get('/api/v1/analytics/charts/income-expense')
-        data = self.assert_success_response(response)
-        for item in data['data']:
-            self.assertIn('label', item)
-            self.assertIn('expense', item)
-            self.assertIn('income', item)
-            self.assertIsInstance(item['expense'], (int, float))
-            self.assertIsInstance(item['income'], (int, float))
 
 
 class AnalyticsCategoryTests(BaseAPITestCase):

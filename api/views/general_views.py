@@ -11,7 +11,7 @@ from django.http import HttpResponse
 from django.db.models import Sum, Count
 from django.utils import timezone
 
-from ..models import Category, Budget, Expense, Income, Report, UserSettings
+from ..models import Category, Budget, Expense, Report, UserSettings
 from ..serializers import CategorySerializer, BudgetSerializer, ReportSerializer, UserSettingsSerializer
 from ..utils import ApiResponse, get_start_of_month, get_end_of_month
 from django.shortcuts import render
@@ -238,12 +238,6 @@ class ReportCSVView(APIView):
 
         # Save report record
         total_expense = float(expenses.aggregate(total=Sum('amount'))['total'] or 0)
-        total_income = float(
-            Income.objects.filter(
-                user=request.user,
-                income_date__gte=start, income_date__lte=end
-            ).aggregate(total=Sum('amount'))['total'] or 0
-        )
         Report.objects.create(
             user=request.user,
             type='custom',
@@ -251,8 +245,6 @@ class ReportCSVView(APIView):
             end_date=end,
             format='csv',
             total_expense=total_expense,
-            total_income=total_income,
-            net_savings=total_income - total_expense,
         )
 
         response = HttpResponse(output.getvalue(), content_type='text/csv')
@@ -280,12 +272,6 @@ class ReportPDFView(APIView):
 
         total_expense = float(expenses.aggregate(total=Sum('amount'))['total'] or 0)
         expense_count = expenses.count()
-        total_income = float(
-            Income.objects.filter(
-                user=request.user,
-                income_date__gte=start, income_date__lte=end
-            ).aggregate(total=Sum('amount'))['total'] or 0
-        )
 
         # Category breakdown
         category_data = (
@@ -319,11 +305,7 @@ class ReportPDFView(APIView):
         c.drawString(50, y, 'Summary')
         y -= 25
         c.setFont('Helvetica', 11)
-        c.drawString(50, y, f'Total Income: ${total_income:,.0f}')
-        y -= 18
         c.drawString(50, y, f'Total Expenses: ${total_expense:,.0f}')
-        y -= 18
-        c.drawString(50, y, f'Net Savings: ${total_income - total_expense:,.0f}')
         y -= 18
         c.drawString(50, y, f'Transactions: {expense_count}')
 
@@ -370,8 +352,6 @@ class ReportPDFView(APIView):
             end_date=end,
             format='pdf',
             total_expense=total_expense,
-            total_income=total_income,
-            net_savings=total_income - total_expense,
         )
 
         buffer.seek(0)

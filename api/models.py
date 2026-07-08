@@ -100,52 +100,6 @@ class Expense(models.Model):
         return f"{self.title} — ${self.amount}"
 
 
-class Income(models.Model):
-    """Income record."""
-
-    PAYMENT_SOURCE_CHOICES = [
-        ('Bank Transfer', 'Bank Transfer'),
-        ('PayPal', 'PayPal'),
-        ('Stripe', 'Stripe'),
-        ('Cash', 'Cash'),
-        ('Brokerage', 'Brokerage'),
-        ('UPI', 'UPI'),
-        ('Other', 'Other'),
-    ]
-
-    user = models.ForeignKey(User, on_delete=models.CASCADE, default=1, related_name='incomes')
-    source = models.CharField(max_length=255, db_index=True)
-    amount = models.DecimalField(
-        max_digits=12, decimal_places=2,
-        validators=[MinValueValidator(0)]
-    )
-    description = models.TextField(blank=True, default='')
-    payment_source = models.CharField(
-        max_length=20, choices=PAYMENT_SOURCE_CHOICES, default='Bank Transfer'
-    )
-    income_date = models.DateTimeField(db_index=True)
-    notes = models.TextField(blank=True, default='')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ['-income_date']
-        indexes = [
-            models.Index(fields=['-income_date']),
-            models.Index(fields=['source', '-income_date']),
-        ]
-
-    def save(self, *args, **kwargs):
-        if not self.user_id or not User.objects.filter(id=self.user_id).exists():
-            user = User.objects.first()
-            if not user:
-                user = User.objects.create_user('default_user', 'default@example.com', 'defaultpassword123')
-            self.user = user
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.source} — ${self.amount}"
-
 
 class Budget(models.Model):
     """Monthly budget settings."""

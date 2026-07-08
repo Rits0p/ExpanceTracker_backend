@@ -8,11 +8,11 @@ from datetime import timedelta
 from decimal import Decimal
 import random
 
-from api.models import Category, Expense, Income, Budget
+from api.models import Category, Expense, Budget
 
 
 class Command(BaseCommand):
-    help = 'Seed database with sample expense, income, category, and budget data'
+    help = 'Seed database with sample expense, category, and budget data'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -24,7 +24,7 @@ class Command(BaseCommand):
         if options['clear']:
             self.stdout.write('Clearing existing data...')
             Expense.objects.all().delete()
-            Income.objects.all().delete()
+
             Category.objects.all().delete()
             Budget.objects.all().delete()
 
@@ -84,30 +84,6 @@ class Command(BaseCommand):
                     expense_date=base_date,
                 )
 
-        self.stdout.write('Seeding income...')
-        income_data = [
-            {'source': 'Salary', 'amount': 5200, 'income_date': now.replace(day=1), 'payment_source': 'Bank Transfer', 'description': 'Monthly salary'},
-            {'source': 'Freelance', 'amount': 1200, 'income_date': now - timedelta(days=5), 'payment_source': 'PayPal', 'description': 'Web design project'},
-            {'source': 'Dividends', 'amount': 340, 'income_date': now - timedelta(days=10), 'payment_source': 'Brokerage', 'description': 'Q1 dividends'},
-            {'source': 'Side Project', 'amount': 450, 'income_date': now - timedelta(days=18), 'payment_source': 'Stripe', 'description': 'App subscription revenue'},
-        ]
-        for inc_data in income_data:
-            Income.objects.create(**inc_data)
-
-        # Past month income
-        for month_offset in range(1, 6):
-            base = now - timedelta(days=30 * month_offset)
-            Income.objects.create(
-                source='Salary', amount=Decimal('5200') * Decimal(str(random.uniform(0.95, 1.05))),
-                income_date=base.replace(day=1), payment_source='Bank Transfer', description='Monthly salary',
-            )
-            if random.random() > 0.3:
-                Income.objects.create(
-                    source='Freelance', amount=Decimal(str(random.randint(500, 2000))),
-                    income_date=base - timedelta(days=random.randint(0, 15)),
-                    payment_source='PayPal', description='Freelance project',
-                )
-
         self.stdout.write('Seeding budgets...')
         current_month = now.month
         current_year = now.year
@@ -120,6 +96,5 @@ class Command(BaseCommand):
             f'✅ Database seeded successfully!\n'
             f'   Categories: {Category.objects.count()}\n'
             f'   Expenses: {Expense.objects.count()}\n'
-            f'   Income: {Income.objects.count()}\n'
             f'   Budgets: {Budget.objects.count()}'
         ))

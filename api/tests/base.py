@@ -7,7 +7,7 @@ from datetime import timedelta
 from django.utils import timezone
 from rest_framework.test import APITestCase, APIClient
 
-from api.models import Category, Expense, Income, Budget, Report
+from api.models import Category, Expense, Budget, Report
 
 
 class BaseAPITestCase(APITestCase):
@@ -79,22 +79,6 @@ class BaseAPITestCase(APITestCase):
             category='Food',
             payment_method='Cash',
             expense_date=self.now - timedelta(days=45),
-        )
-
-        # ── Income ──
-        self.income1 = Income.objects.create(
-            source='Salary',
-            amount=Decimal('5200.00'),
-            payment_source='Bank Transfer',
-            income_date=self.now.replace(day=1),
-            description='Monthly salary',
-        )
-        self.income2 = Income.objects.create(
-            source='Freelance',
-            amount=Decimal('1200.00'),
-            payment_source='PayPal',
-            income_date=self.now - timedelta(days=5),
-            description='Web design project',
         )
 
         # ── Budget ──

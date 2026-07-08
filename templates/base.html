@@ -1,69 +1,78 @@
 {% load static %}
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="{% block meta_description %}ExpenseIQ - Premium Financial Dashboard for tracking expenses, income, and budgets{% endblock %}"
-    />
-    <title>ExpenseIQ — {% block title %}{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
-    <!-- Phosphor Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <style>
-      @media (max-width: 1024px) {
-        #menuBtn {
-          display: flex !important;
-        }
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="{% block meta_description %}ExpenseIQ - Premium Financial Dashboard for tracking expenses, income, and budgets{% endblock %}" />
+  <title>ExpenseIQ — {% block title %}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <style>
+    @media (max-width: 1024px) {
+      #menuBtn {
+        display: flex !important;
       }
-    </style>
-    {% block extra_head %}{% endblock %}
-  </head>
-  <body>
-    {% include 'partials/sidebar.html' %}
+    }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
 
-    <div class="main-content" id="mainContent">
-      <header class="topbar">
-        <div class="topbar-left">
-          <button class="topbar-btn" id="menuBtn" style="display:none" onclick="document.getElementById('sidebar').classList.toggle('open')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-          </button>
-          <div>
-            <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
-            <p class="page-subtitle">{% block page_subtitle %}{% endblock %}</p>
-          </div>
+<body>
+  {% include 'partials/sidebar.html' %}
+
+  <div class="main-content" id="mainContent">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="topbar-btn" id="menuBtn" style="display:none"
+          onclick="document.getElementById('sidebar').classList.toggle('open')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+        <div>
+          <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+          <p class="page-subtitle">{% block page_subtitle %}{% endblock %}</p>
         </div>
-        <div class="topbar-right">
-          <button class="topbar-btn" id="themeToggle" onclick="toggleTheme()"></button>
-          <button class="topbar-btn" id="notifBtn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
-          </button>
-          <div class="topbar-user" id="topbarUser">
-            <a href="/profile/" style="text-decoration:none">
-              <div class="avatar" id="topbarAvatar">
-                {% if user.first_name and user.last_name %}
-                  {{ user.first_name.0|upper }}{{ user.last_name.0|upper }}
-                {% elif user.username %}
-                  {{ user.username.0|upper }}
-                {% else %}
-                  U
-                {% endif %}
-              </div>
-            </a>
-          </div>
+      </div>
+      <div class="topbar-right">
+        <button class="topbar-btn" id="themeToggle" onclick="toggleTheme()"></button>
+        <button class="topbar-btn" id="notifBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 01-3.46 0" />
+          </svg>
+        </button>
+        <div class="topbar-user" id="topbarUser">
+          <a href="/profile/" style="text-decoration:none">
+            <div class="avatar" id="topbarAvatar">
+              {% if user.first_name and user.last_name %}
+              {{ user.first_name.0|upper }}{{ user.last_name.0|upper }}
+              {% elif user.username %}
+              {{ user.username.0|upper }}
+              {% else %}
+              U
+              {% endif %}
+            </div>
+          </a>
         </div>
-      </header>
+      </div>
+    </header>
 
-      {% block content %}{% endblock %}
-    </div>
+    {% block content %}{% endblock %}
+  </div>
 
-    {% include 'partials/bottom_nav.html' %}
+  {% include 'partials/bottom_nav.html' %}
 
-    <script src="{% static 'js/auth.js' %}?v=4.1"></script>
-    <script src="{% static 'js/components.js' %}?v=4.1"></script>
-    <script src="{% static 'js/app.js' %}?v=4.1"></script>
-    {% block extra_js %}{% endblock %}
-  </body>
+  <script src="{% static 'js/auth.js' %}?v=4.1"></script>
+  <script src="{% static 'js/components.js' %}?v=4.1"></script>
+  <script src="{% static 'js/app.js' %}?v=4.1"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+
 </html>

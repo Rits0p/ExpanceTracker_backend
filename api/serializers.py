@@ -2,7 +2,7 @@
 Serializers for ExpenseIQ API — matching the Node.js request/response format.
 """
 from rest_framework import serializers
-from .models import Expense, Income, Category, Budget, Report
+from .models import Expense, Category, Budget, Report
 
 
 # ───── Category Serializer ─────
@@ -46,27 +46,6 @@ class ExpenseSerializer(serializers.ModelSerializer):
         ret = super().to_representation(instance)
         ret['amount'] = float(ret.get('amount', 0) or 0)
         # Add _id alias for frontend compatibility
-        ret['_id'] = str(ret['id'])
-        return ret
-
-
-# ───── Income Serializer ─────
-class IncomeSerializer(serializers.ModelSerializer):
-    paymentSource = serializers.CharField(source='payment_source', required=False)
-    incomeDate = serializers.DateTimeField(source='income_date')
-    createdAt = serializers.DateTimeField(source='created_at', read_only=True)
-    updatedAt = serializers.DateTimeField(source='updated_at', read_only=True)
-
-    class Meta:
-        model = Income
-        fields = [
-            'id', 'source', 'amount', 'description', 'paymentSource',
-            'incomeDate', 'notes', 'createdAt', 'updatedAt',
-        ]
-
-    def to_representation(self, instance):
-        ret = super().to_representation(instance)
-        ret['amount'] = float(ret.get('amount', 0) or 0)
         ret['_id'] = str(ret['id'])
         return ret
 

@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.db import IntegrityError
 from rest_framework.test import APIClient
 
-from api.models import Category, Expense, Income, Budget, Report
+from api.models import Category, Expense, Budget, Report
 
 
 class HealthCheckTests(TestCase):
@@ -113,33 +113,6 @@ class ExpenseModelTests(TestCase):
         )
         exp.refresh_from_db()
         self.assertEqual(exp.tags, ['a', 'b', 'c'])
-
-
-class IncomeModelTests(TestCase):
-    """Income model validation."""
-
-    def test_create_income(self):
-        """Should create income with required fields."""
-        inc = Income.objects.create(
-            source='Salary', amount=Decimal('5000.00'),
-            income_date=timezone.now(),
-        )
-        self.assertIn('Salary', str(inc))
-
-    def test_income_defaults(self):
-        """Should use default payment_source."""
-        inc = Income.objects.create(
-            source='Test', amount=100, income_date=timezone.now(),
-        )
-        self.assertEqual(inc.payment_source, 'Bank Transfer')
-
-    def test_income_ordering(self):
-        """Should order by income_date descending."""
-        now = timezone.now()
-        Income.objects.create(source='Old', amount=100, income_date=now - timedelta(days=5))
-        Income.objects.create(source='New', amount=200, income_date=now)
-        first = Income.objects.first()
-        self.assertEqual(first.source, 'New')
 
 
 class BudgetModelTests(TestCase):

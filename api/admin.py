@@ -1,6 +1,6 @@
 """Django admin configuration for ExpenseIQ models."""
 from django.contrib import admin
-from .models import Expense, Income, Category, Budget, Report
+from .models import Expense, Category, Budget, Report
 
 
 @admin.register(Category)
@@ -15,14 +15,6 @@ class ExpenseAdmin(admin.ModelAdmin):
     list_filter = ['category', 'payment_method', 'is_recurring']
     search_fields = ['title', 'notes']
     date_hierarchy = 'expense_date'
-
-
-@admin.register(Income)
-class IncomeAdmin(admin.ModelAdmin):
-    list_display = ['source', 'amount', 'payment_source', 'income_date']
-    list_filter = ['payment_source']
-    search_fields = ['source', 'description']
-    date_hierarchy = 'income_date'
 
 
 @admin.register(Budget)

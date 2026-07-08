@@ -8,7 +8,7 @@ from django.db.models.functions import ExtractMonth, ExtractYear, ExtractWeekDay
 from django.utils import timezone
 from datetime import datetime, timedelta, timezone as dt_timezone
 
-from ..models import Expense, Income, Category
+from ..models import Expense, Category
 from ..utils import (
     ApiResponse,
     get_start_of_week, get_end_of_week,
@@ -22,17 +22,6 @@ def _sum_expenses(user, start, end):
     """Sum expenses in a date range."""
     result = Expense.objects.filter(
         user=user, expense_date__gte=start, expense_date__lte=end
-    ).aggregate(total=Sum('amount'), count=Count('id'))
-    return {
-        'total': float(result['total'] or 0),
-        'count': result['count'] or 0,
-    }
-
-
-def _sum_income(user, start, end):
-    """Sum income in a date range."""
-    result = Income.objects.filter(
-        user=user, income_date__gte=start, income_date__lte=end
     ).aggregate(total=Sum('amount'), count=Count('id'))
     return {
         'total': float(result['total'] or 0),
@@ -76,33 +65,6 @@ def _monthly_expense_trend(user, months=6):
         .annotate(
             month=ExtractMonth('expense_date'),
             year=ExtractYear('expense_date'),
-        )
-        .values('month', 'year')
-        .annotate(total=Sum('amount'), count=Count('id'))
-        .order_by('year', 'month')
-    )
-    return [
-        {
-            '_id': {'year': item['year'], 'month': item['month']},
-            'total': float(item['total'] or 0),
-            'count': item['count'],
-        }
-        for item in data
-    ]
-
-
-def _monthly_income_trend(user, months=6):
-    """Get monthly income aggregation for the last N months."""
-    start_date = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    start_date = start_date - timedelta(days=months * 31)
-    start_date = start_date.replace(day=1)
-
-    data = (
-        Income.objects
-        .filter(user=user, income_date__gte=start_date)
-        .annotate(
-            month=ExtractMonth('income_date'),
-            year=ExtractYear('income_date'),
         )
         .values('month', 'year')
         .annotate(total=Sum('amount'), count=Count('id'))
@@ -169,7 +131,6 @@ class AnalyticsKPIsView(APIView):
         all_time_start = datetime(2000, 1, 1, tzinfo=dt_timezone.utc)
 
         total_exp = _sum_expenses(request.user, all_time_start, now)
-        total_inc = _sum_income(request.user, all_time_start, now)
         monthly_exp = _sum_expenses(request.user, month_start, month_end)
         weekly_exp = _sum_expenses(request.user, week_start, week_end)
         category_data = _group_expenses_by_category(request.user, month_start, month_end)
@@ -184,17 +145,12 @@ class AnalyticsKPIsView(APIView):
         from ..serializers import ExpenseSerializer
         top_expense_data = ExpenseSerializer(top_expense).data if top_expense else None
 
-        balance = total_inc['total'] - total_exp['total']
-        savings_rate = round((balance / total_inc['total'] * 100), 2) if total_inc['total'] > 0 else 0
         days_in_month = (month_end - month_start).days or 1
         daily_avg = round(monthly_exp['total'] / days_in_month, 2)
         top_category = category_data[0] if category_data else None
 
         return ApiResponse.success({
             'totalExpense': total_exp['total'],
-            'totalIncome': total_inc['total'],
-            'remainingBalance': balance,
-            'savingsRate': savings_rate,
             'monthlyExpense': monthly_exp['total'],
             'weeklyExpense': weekly_exp['total'],
             'dailyAverage': daily_avg,
@@ -317,29 +273,6 @@ class AnalyticsCategoryPieChartView(APIView):
             end = get_end_of_month(now)
             
         data = _group_expenses_by_category(request.user, start, end)
-        return ApiResponse.success(data)
-
-
-class AnalyticsIncomeExpenseChartView(APIView):
-    """GET /api/v1/analytics/charts/income-expense"""
-
-    def get(self, request):
-        exp_trend = _monthly_expense_trend(request.user, 6)
-        inc_trend = _monthly_income_trend(request.user, 6)
-        labels = get_last_n_months_labels(6)
-
-        data = []
-        for label_info in labels:
-            m = label_info['month']
-            y = label_info['year']
-            exp = next((t for t in exp_trend if t['_id']['month'] == m and t['_id']['year'] == y), None)
-            inc = next((t for t in inc_trend if t['_id']['month'] == m and t['_id']['year'] == y), None)
-            data.append({
-                'label': label_info['label'],
-                'expense': exp['total'] if exp else 0,
-                'income': inc['total'] if inc else 0,
-            })
-
         return ApiResponse.success(data)
 
 

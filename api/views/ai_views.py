@@ -24,10 +24,9 @@ from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 import requests
 
 from ..utils import ApiResponse
-from ..models import Expense, Income, Budget, Category
+from ..models import Expense, Budget, Category
 from ..serializers import (
     ExpenseSerializer,
-    IncomeSerializer,
     BudgetSerializer,
     CategorySerializer,
 )
@@ -190,25 +189,6 @@ def _build_user_context(user) -> str:
     except Exception as exc:
         logger.warning(f"Budget context error: {exc}")
 
-    # ── Income + savings rate ─────────────────────────────────────────
-    try:
-        incomes = Income.objects.filter(user=user).order_by("-income_date")[:5]
-        if incomes.exists():
-            month_inc = (
-                Income.objects.filter(user=user, income_date__month=m, income_date__year=y)
-                .aggregate(t=Sum("amount"))["t"]
-                or 0
-            )
-            savings = float(month_inc) - float(month_total)
-            savings_rate = (savings / float(month_inc) * 100) if month_inc else 0
-            inc_rows = ",".join(f"{i.source[:12]}:₹{i.amount}" for i in incomes)
-            parts.append(
-                f"[INCOME|this_month:₹{month_inc:.0f}|savings:₹{savings:.0f}"
-                f"|rate:{savings_rate:.0f}%|recent:{inc_rows}]"
-            )
-    except Exception as exc:
-        logger.warning(f"Income context error: {exc}")
-
     # ── Category budget usage ─────────────────────────────────────────
     try:
         cat_budgets = Category.objects.filter(user=user, monthly_budget__gt=0)
@@ -352,93 +332,6 @@ def _execute_crud(user, intent: str, data: dict) -> dict:
             msg = f"📋 **Expenses** (showing {len(lines)}, total ₹{total:.0f}):\n" + "\n".join(lines)
             return ok(msg, "none", records)
 
-        # ── ADD INCOME ────────────────────────────────────────────────
-        elif intent == "add_income":
-            raw_date = data.get("income_date")
-            try:
-                inc_date = datetime.fromisoformat(raw_date) if raw_date else datetime.now()
-            except Exception:
-                inc_date = datetime.now()
-
-            payload = {
-                "source":        data.get("source", "Income"),
-                "amount":        _to_float(data.get("amount"), 0),
-                "description":   data.get("description", ""),
-                "paymentSource": data.get("payment_source", "Bank Transfer"),
-                "incomeDate":    inc_date.isoformat(),
-                "notes":         data.get("notes", ""),
-            }
-            ser = IncomeSerializer(data=payload)
-            if not ser.is_valid():
-                return err(f"❌ Validation failed: {ser.errors}")
-            i = ser.save(user=user)
-            record = {
-                "id": i.id, "_id": str(i.id),
-                "source": i.source, "amount": float(i.amount),
-                "income_date": i.income_date.isoformat(),
-            }
-            return ok(f"✅ Added income **{i.source}** — ₹{i.amount}", "created", record)
-
-        # ── EDIT INCOME ───────────────────────────────────────────────
-        elif intent == "edit_income":
-            search = data.get("search", "").strip()
-            fields = data.get("fields", {})
-            if not search:
-                return err("❌ Provide a search keyword to find the income.")
-            qs = Income.objects.filter(
-                user=user, source__icontains=search
-            ).order_by("-income_date")
-            if not qs.exists():
-                return err(f"❌ No income matching '{search}' found.")
-            i = qs.first()
-            field_map = {"payment_source": "paymentSource", "income_date": "incomeDate"}
-            payload = {field_map.get(k, k): v for k, v in fields.items()}
-            ser = IncomeSerializer(i, data=payload, partial=True)
-            if not ser.is_valid():
-                return err(f"❌ Validation failed: {ser.errors}")
-            i = ser.save()
-            return ok(f"✏️ Updated income **{i.source}** — ₹{i.amount}", "updated")
-
-        # ── DELETE INCOME ─────────────────────────────────────────────
-        elif intent == "del_income":
-            search = data.get("search", "").strip()
-            if not search:
-                return err("❌ Provide a search keyword to delete the income.")
-            qs = Income.objects.filter(
-                user=user, source__icontains=search
-            ).order_by("-income_date")
-            if not qs.exists():
-                return err(f"❌ No income matching '{search}' found.")
-            i = qs.first()
-            name, amt = i.source, i.amount
-            i.delete()
-            return ok(f"🗑️ Deleted income **{name}** (₹{amt})", "deleted", {"id": i.id})
-
-        # ── LIST INCOMES ──────────────────────────────────────────────
-        elif intent == "list_incomes":
-            limit        = min(int(data.get("limit", 10)), 50)
-            month_filter = _parse_month(data.get("month"))
-            year_filter  = data.get("year")
-
-            qs = Income.objects.filter(user=user).order_by("-income_date")
-            if month_filter:
-                qs = qs.filter(income_date__month=month_filter)
-            if year_filter:
-                qs = qs.filter(income_date__year=int(year_filter))
-
-            incomes = qs[:limit]
-            if not incomes:
-                return ok("ℹ️ No income records found.", "none")
-
-            total, lines, records = 0, [], []
-            for i in incomes:
-                records.append(IncomeSerializer(i).data)
-                date_str = i.income_date.strftime("%d %b") if i.income_date else "?"
-                lines.append(f"• {date_str} — **{i.source}** ₹{i.amount}")
-                total += float(i.amount)
-            msg = f"💵 **Income** (showing {len(lines)}, total ₹{total:.0f}):\n" + "\n".join(lines)
-            return ok(msg, "none", records)
-
         # ── SET / UPSERT BUDGET ───────────────────────────────────────
         elif intent == "set_budget":
             now   = datetime.now()
@@ -579,6 +472,24 @@ def _execute_crud(user, intent: str, data: dict) -> dict:
                 lines.append(f"• {c.icon} **{c.name}**{budget_str}")
             return ok("📂 **Your Categories:**\n" + "\n".join(lines), "none", records)
 
+        # ── CHANGE THEME ──────────────────────────────────────────────
+        elif intent == "change_theme":
+            theme = data.get("theme", "dark").lower()
+            if theme not in ["light", "dark"]:
+                theme = "dark"
+            
+            # Save it to the user's settings if possible
+            from ..models import UserSettings
+            try:
+                us, _ = UserSettings.objects.get_or_create(user=user)
+                if us.theme != theme:
+                    us.theme = theme
+                    us.save()
+            except Exception as e:
+                logger.warning(f"Failed to update theme in DB: {e}")
+
+            return ok(f"🎨 Theme changed to **{theme}** mode.", "change_theme", {"theme": theme})
+
     except Exception as exc:
         logger.exception(f"CRUD execution error for intent={intent}: {exc}")
         return err(f"❌ Operation failed: {exc}")
@@ -604,10 +515,6 @@ Available intents:
   edit_expense    — data: {{search (title keyword), fields: {{title?, amount?, category?, payment_method?, notes?}}}}
   del_expense     — data: {{search (title keyword)}}
   list_expenses   — data: {{limit?(default 10, max 50), category?, month?, year?}}
-  add_income      — data: {{source, amount, income_date(ISO), payment_source?, description?, notes?}}
-  edit_income     — data: {{search (source keyword), fields: {{source?, amount?, payment_source?, notes?}}}}
-  del_income      — data: {{search (source keyword)}}
-  list_incomes    — data: {{limit?(default 10), month?, year?}}
   set_budget      — data: {{total?, weekly?, daily?, yearly?, month?, year?}} — include ONLY changed fields
   del_budget      — data: {{month?, year?}}
   list_budgets    — data: {{}}
@@ -615,6 +522,7 @@ Available intents:
   edit_category   — data: {{name, fields: {{monthly_budget?, icon?, color?}}}}
   del_category    — data: {{name}}
   list_categories — data: {{}}
+  change_theme    — data: {{theme: "light" | "dark"}}
 
 Rules:
 - message: 1-3 sentences, friendly. Use **bold** for amounts and names.
@@ -622,7 +530,6 @@ Rules:
 - For none intent: answer from user data below. Be concise.
 - Dates: always ISO format (2025-06-15T00:00:00).
 - payment_method choices: Cash, UPI, Credit Card, Debit Card, Bank Transfer, Auto Pay, Other
-- payment_source choices: Bank Transfer, UPI, PayPal, Stripe, Cash, Brokerage, Other
 
 USER FINANCIAL DATA:
 {user_context}
@@ -635,9 +542,9 @@ USER FINANCIAL DATA:
 
 CRUD_INTENTS = {
     "add_expense", "edit_expense", "del_expense", "list_expenses",
-    "add_income",  "edit_income",  "del_income",  "list_incomes",
     "set_budget",  "del_budget",   "list_budgets",
     "add_category","edit_category","del_category","list_categories",
+    "change_theme",
 }
 
 
