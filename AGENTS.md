@@ -33,7 +33,7 @@ ExpenseTracker is a Django REST API for personal expense tracking with AI assist
 
 ## Architecture
 
-Follow Django MVT (Model-View-Template) with REST principles.
+Strictly follow Django MVT (Model-View-Template) with REST principles.
 
 ```
 api/
@@ -51,10 +51,10 @@ api/
 ```
 
 **Business Logic Rules**
-- Keep views thin: validate input, call serializers, return responses
-- Use serializers for validation and data transformation
-- Place complex logic in utility functions or custom managers
-- Avoid duplicate queries with `.select_related()` and `.prefetch_related()`
+- Keep views thin: validate input, invoke serializers, return concise responses
+- Use serializers for validation and precise data transformation
+- Always place complex logic in utility functions or custom managers
+- Avoid duplicate queries; use `.select_related()` and `.prefetch_related()` when appropriate
 
 ---
 
