@@ -414,11 +414,30 @@ def _execute_crud(user, intent: str, data: dict) -> dict:
                 return err("❌ Category name is required.")
             if Category.objects.filter(user=user, name__iexact=name).exists():
                 return ok(f"ℹ️ Category **{name}** already exists.", "none")
+
+            # Rotate through a palette so each new category gets a distinct default color
+            _CATEGORY_PALETTE = [
+                "#10b981",  # emerald
+                "#3b82f6",  # blue
+                "#f97316",  # orange
+                "#8b5cf6",  # violet
+                "#ec4899",  # pink
+                "#14b8a6",  # teal
+                "#f59e0b",  # amber
+                "#ef4444",  # red
+                "#06b6d4",  # cyan
+                "#84cc16",  # lime
+                "#a855f7",  # purple
+                "#fb923c",  # light orange
+            ]
+            existing_count = Category.objects.filter(user=user).count()
+            default_color  = _CATEGORY_PALETTE[existing_count % len(_CATEGORY_PALETTE)]
+
             payload = {
                 "name":          name,
                 "monthlyBudget": _to_float(data.get("monthly_budget"), 0),
                 "icon":          data.get("icon") or "ph-package",
-                "color":         data.get("color") or "#10b981",
+                "color":         data.get("color") or default_color,
             }
             ser = CategorySerializer(data=payload)
             if not ser.is_valid():
