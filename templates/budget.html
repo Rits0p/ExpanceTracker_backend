@@ -11,28 +11,28 @@
     <div class="kpi-card fade-in stagger-1">
       <div class="kpi-header">
         <div class="kpi-label">Total Budget</div>
-        <div class="kpi-icon purple">🎯</div>
+        <div class="kpi-icon purple"><i class="ph ph-target" style="font-size: 16px;"></i></div>
       </div>
       <div class="kpi-value" id="kpiTotalBudget">₹0</div>
     </div>
     <div class="kpi-card fade-in stagger-2">
       <div class="kpi-header">
         <div class="kpi-label">Total Spent</div>
-        <div class="kpi-icon red">💸</div>
+        <div class="kpi-icon red"><i class="ph ph-receipt" style="font-size: 16px;"></i></div>
       </div>
       <div class="kpi-value" id="kpiTotalSpent">₹0</div>
     </div>
     <div class="kpi-card fade-in stagger-3">
       <div class="kpi-header">
         <div class="kpi-label">Remaining Budget</div>
-        <div class="kpi-icon green">💰</div>
+        <div class="kpi-icon green"><i class="ph ph-wallet" style="font-size: 16px;"></i></div>
       </div>
       <div class="kpi-value" id="kpiRemainingBudget">₹0</div>
     </div>
     <div class="kpi-card fade-in stagger-4">
       <div class="kpi-header">
         <div class="kpi-label">Saving Ratio</div>
-        <div class="kpi-icon blue">📈</div>
+        <div class="kpi-icon blue"><i class="ph ph-chart-line-up" style="font-size: 16px;"></i></div>
       </div>
       <div class="kpi-value" id="kpiSavingRatio">0%</div>
     </div>
@@ -61,7 +61,35 @@
         </div>
         <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
           <label class="form-label">Icon</label>
-          <input type="text" class="form-input" id="newCatIcon" placeholder="Emoji (e.g. ✈️)">
+          <select class="form-select" id="newCatIcon" style="height: 42px;">
+            <option value="ph-tag">🏷️ Tag (Default)</option>
+            <option value="ph-hamburger">🍔 Food</option>
+            <option value="ph-coffee">☕ Coffee/Café</option>
+            <option value="ph-martini">🍸 Drinks/Nightlife</option>
+            <option value="ph-shopping-cart">🛒 Shopping</option>
+            <option value="ph-bag">🛍️ Shopping Bag</option>
+            <option value="ph-film-strip">🎬 Entertainment</option>
+            <option value="ph-game-controller">🎮 Gaming</option>
+            <option value="ph-music-notes">🎵 Music</option>
+            <option value="ph-car">🚗 Car/Transport</option>
+            <option value="ph-airplane">✈️ Travel/Flight</option>
+            <option value="ph-train">🚆 Train</option>
+            <option value="ph-bicycle">🚲 Bicycle</option>
+            <option value="ph-house-line">🏠 Housing/Rent</option>
+            <option value="ph-lightning">⚡ Utilities</option>
+            <option value="ph-wifi-high">📶 Internet/Wifi</option>
+            <option value="ph-phone">📞 Phone</option>
+            <option value="ph-heartbeat">❤️ Health/Medical</option>
+            <option value="ph-barbell">💪 Fitness/Gym</option>
+            <option value="ph-sparkles">✨ Beauty/Personal Care</option>
+            <option value="ph-graduation-cap">🎓 Education</option>
+            <option value="ph-briefcase">💼 Work/Business</option>
+            <option value="ph-coins">🪙 Coins/Fees</option>
+            <option value="ph-bank">🏦 Bank/Tax</option>
+            <option value="ph-gift">🎁 Gift/Donation</option>
+            <option value="ph-paw-print">🐾 Pets</option>
+            <option value="ph-package">📦 Miscellaneous</option>
+          </select>
         </div>
         <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
           <label class="form-label">Color</label>
@@ -123,7 +151,7 @@
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label">Amount ($)</label>
+        <label class="form-label" id="budgetAmountLabel">Amount ($)</label>
         <input type="number" class="form-input" id="bAmount" required min="1" step="0.01" placeholder="e.g. 100" />
       </div>
       <div style="display: flex; gap: 12px; margin-top: 24px">
@@ -154,6 +182,10 @@
   let budgetHistory = [];
 
   async function fetchBudgetData() {
+    const sym = (typeof Settings !== 'undefined' && Settings._data && Settings._data.currencySymbol) || '$';
+    const budgetAmountLabel = document.getElementById('budgetAmountLabel');
+    if (budgetAmountLabel) budgetAmountLabel.textContent = `Amount (${sym})`;
+
     if (typeof Auth !== "undefined") await Auth.init();
     const now = new Date();
 
@@ -281,7 +313,7 @@
   document.getElementById('addCategoryForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('newCatName').value;
-    const icon = document.getElementById('newCatIcon').value || '📦';
+    const icon = document.getElementById('newCatIcon').value || 'ph-package';
     const color = document.getElementById('newCatColor').value;
 
     const res = await Auth.apiFetch('/api/v1/categories', {

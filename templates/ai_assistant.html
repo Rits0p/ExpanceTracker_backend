@@ -9,7 +9,32 @@
 {% block content %}
 <div class="page ai-page" id="aiPage" data-username="{{ user.username|default:'User' }}">
 
-  <div class="ai-main card" id="aiMain">
+  <div class="ai-layout">
+    <!-- Left Sidebar: ChatGPT-style Conversations -->
+    <div class="ai-sidebar" id="aiSidebar">
+      <div class="ai-sidebar-header">
+        <button class="ai-new-chat-btn" onclick="startNewChat()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span>New Chat</span>
+        </button>
+      </div>
+      
+      <!-- Search Conversations -->
+      <div class="ai-sidebar-search">
+        <div class="ai-search-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="aiSearchInput" placeholder="Search chats..." oninput="handleSearch(this.value)">
+        </div>
+      </div>
+
+      <!-- Scrollable History List -->
+      <div class="ai-history-list" id="aiHistoryList">
+        <!-- Grouped Dynamically -->
+      </div>
+    </div>
+
+    <!-- Right Content: Chat Area -->
+    <div class="ai-main" id="aiMain">
 
     <div class="card-header ai-card-header">
       <div>
@@ -129,6 +154,7 @@
       <input type="file" id="aiUploadInput" accept="image/*,.pdf" hidden>
     </div>
 
+  </div>
   </div>
 </div>
 

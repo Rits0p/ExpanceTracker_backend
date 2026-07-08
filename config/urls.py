@@ -57,6 +57,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('health', health_check),
     path('api/v1/', include('api.urls')),
+    path('api/chats/', include('api.chats_urls')),
+    path('api/v1/chats/', include('api.chats_urls')),
 
     # Swagger docs
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

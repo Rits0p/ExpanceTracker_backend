@@ -24,7 +24,7 @@ from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 import requests
 
 from ..utils import ApiResponse
-from ..models import Expense, Budget, Category
+from ..models import Expense, Budget, Category, AIChatMessage
 from ..serializers import (
     ExpenseSerializer,
     BudgetSerializer,
@@ -555,17 +555,48 @@ CRUD_INTENTS = {
 class AIAssistantView(APIView):
     """
     POST /api/v1/ai/assistant
-
-    Body (multipart or JSON):
-      text    — user's message (required if no audio/image)
-      audio   — audio file (optional)
-      image   — image file (optional)
-      history — JSON string: [{role:"user"|"assistant", parts:"..."}]
+    GET /api/v1/ai/assistant
+    DELETE /api/v1/ai/assistant
     """
 
     authentication_classes = [CookieJWTAuthentication]
     permission_classes     = []  # unauthenticated allowed (demo fallback to first user)
     parser_classes         = [JSONParser, MultiPartParser, FormParser]
+
+    def get(self, request):
+        user = request.user
+        if not user or not user.is_authenticated:
+            from django.contrib.auth.models import User
+            user = User.objects.first()
+            if not user:
+                return ApiResponse.error("No user found. Please log in.", 401)
+        
+        db_messages = AIChatMessage.objects.filter(user=user).order_by('created_at')
+        history = []
+        for msg in db_messages:
+            history.append({
+                "role": "user",
+                "parts": msg.prompt
+            })
+            history.append({
+                "role": "model",
+                "parts": msg.response,
+                "crudType": msg.crud_type,
+                "crudRecord": msg.crud_record,
+                "isDashboard": msg.is_dashboard
+            })
+        return ApiResponse.success(data={"history": history}, message="History retrieved successfully")
+
+    def delete(self, request):
+        user = request.user
+        if not user or not user.is_authenticated:
+            from django.contrib.auth.models import User
+            user = User.objects.first()
+            if not user:
+                return ApiResponse.error("No user found. Please log in.", 401)
+        
+        AIChatMessage.objects.filter(user=user).delete()
+        return ApiResponse.success(message="History cleared successfully")
 
     def post(self, request):
         # ── 1. Validate inputs ────────────────────────────────────────
@@ -580,14 +611,7 @@ class AIAssistantView(APIView):
             logger.error("GROQ_API_KEY not set in environment.")
             return ApiResponse.error("AI service not configured. Set GROQ_API_KEY.", 503)
 
-        # ── 2. Parse conversation history ─────────────────────────────
-        history_str = request.data.get("history", "[]")
-        try:
-            history = json.loads(history_str) if isinstance(history_str, str) else []
-        except Exception:
-            history = []
-
-        # ── 3. Resolve user (demo fallback) ──────────────────────────
+        # ── 2. Resolve user (demo fallback) ──────────────────────────
         user = request.user
         if not user or not user.is_authenticated:
             from django.contrib.auth.models import User
@@ -595,30 +619,47 @@ class AIAssistantView(APIView):
             if not user:
                 return ApiResponse.error("No user found. Please log in.", 401)
 
-        # ── 4. Build live user context from DB ────────────────────────
+        # ── 3. Handle Special Dashboard Command locally ──────────────────
+        if text == '📊 Show me my dashboard':
+            ai_message = "📊 Here's your financial overview for this month:"
+            AIChatMessage.objects.create(
+                user=user,
+                prompt=text,
+                response=ai_message,
+                crud_type='none',
+                crud_record=None,
+                is_dashboard=True
+            )
+            return ApiResponse.success(
+                data={
+                    "message":     ai_message,
+                    "crud_type":   "none",
+                    "crud_record": None,
+                    "action":      None,
+                },
+                message="AI responded successfully",
+            )
+
+        # ── 4. Parse conversation history from Database ──────────────────
+        db_messages = AIChatMessage.objects.filter(user=user).order_by('created_at')
+
+        # ── 5. Build live user context from DB ────────────────────────
         try:
             user_context = _build_user_context(user)
         except Exception as exc:
             logger.warning(f"Failed to build user context: {exc}")
             user_context = "No financial data available."
 
-        # ── 5. Build messages for Groq ────────────────────────────────
+        # ── 6. Build messages for Groq ────────────────────────────────
         system_prompt = SYSTEM_PROMPT_TEMPLATE.format(user_context=user_context)
         messages = [{"role": "system", "content": system_prompt}]
 
         # Append conversation history (multi-turn support)
-        for msg in history:
-            role  = msg.get("role", "user")
-            role  = "assistant" if role == "model" else role
-            role  = role if role in ("user", "assistant") else "user"
-            parts = msg.get("parts", "")
-            content = (
-                " ".join(str(p) for p in parts if p)
-                if isinstance(parts, list)
-                else str(parts)
-            )
-            if content.strip():
-                messages.append({"role": role, "content": content})
+        for msg in db_messages:
+            if msg.prompt.strip():
+                messages.append({"role": "user", "content": msg.prompt})
+            if msg.response.strip():
+                messages.append({"role": "assistant", "content": msg.response})
 
         # Build current user prompt
         prompt = text or "Analyze the uploaded media for expense-related information."
@@ -628,7 +669,7 @@ class AIAssistantView(APIView):
             prompt += f"\n[Image file: {image_file.name}]"
         messages.append({"role": "user", "content": prompt})
 
-        # ── 6. Call Groq API ──────────────────────────────────────────
+        # ── 7. Call Groq API ──────────────────────────────────────────
         logger.info(f"Groq call: model={GROQ_MODEL} user={user.username}")
         try:
             resp = requests.post(
@@ -656,7 +697,7 @@ class AIAssistantView(APIView):
             logger.exception(f"Groq call failed: {exc}")
             return ApiResponse.error(f"AI service unavailable: {exc}", 503)
 
-        # ── 7. Parse AI JSON response ─────────────────────────────────
+        # ── 8. Parse AI JSON response ─────────────────────────────────
         raw_content = (
             resp.json()
             .get("choices", [{}])[0]
@@ -680,17 +721,26 @@ class AIAssistantView(APIView):
                 ai_message = parsed.get("message", ai_message)
                 ai_data    = parsed.get("data") or {}
         except (json.JSONDecodeError, Exception) as exc:
-            # AI returned plain text — treat as chat-only (intent=none)
             logger.warning(f"AI response not JSON: {exc} — content: {raw_content[:200]}")
 
-        # ── 8. Execute CRUD if needed ─────────────────────────────────
+        # ── 9. Execute CRUD if needed ─────────────────────────────────
         if intent in CRUD_INTENTS:
             result      = _execute_crud(user, intent, ai_data)
             ai_message  = result["message"] or ai_message
             crud_type   = result["crud_type"]
             crud_record = result.get("crud_record")
 
-        # ── 9. Return response ────────────────────────────────────────
+        # ── 10. Save to Database ──────────────────────────────────────
+        AIChatMessage.objects.create(
+            user=user,
+            prompt=prompt,
+            response=ai_message,
+            crud_type=crud_type,
+            crud_record=crud_record,
+            is_dashboard=(intent == "none" and "financial overview" in ai_message)
+        )
+
+        # ── 11. Return response ───────────────────────────────────────
         return ApiResponse.success(
             data={
                 "message":     ai_message,

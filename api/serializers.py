@@ -2,7 +2,7 @@
 Serializers for ExpenseIQ API — matching the Node.js request/response format.
 """
 from rest_framework import serializers
-from .models import Expense, Category, Budget, Report
+from .models import Expense, Category, Budget, Report, Chat, Message
 
 
 # ───── Category Serializer ─────
@@ -143,4 +143,36 @@ class UserSettingsSerializer(serializers.ModelSerializer):
             'currency', 'currencySymbol', 'dateFormat', 'numberFormat',
             'budgetAlerts', 'weeklyReport', 'recurringReminders', 'autoBackup'
         ]
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    createdAt = serializers.DateTimeField(source='created_at', read_only=True)
+    crudType = serializers.CharField(source='crud_type', required=False, default='none')
+    crudRecord = serializers.JSONField(source='crud_record', required=False, allow_null=True)
+    isDashboard = serializers.BooleanField(source='is_dashboard', required=False, default=False)
+
+    class Meta:
+        model = Message
+        fields = ['id', 'role', 'content', 'crudType', 'crudRecord', 'isDashboard', 'createdAt']
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['_id'] = str(ret['id'])
+        return ret
+
+
+class ChatSerializer(serializers.ModelSerializer):
+    lastMessage = serializers.CharField(source='last_message', read_only=True)
+    createdAt = serializers.DateTimeField(source='created_at', read_only=True)
+    updatedAt = serializers.DateTimeField(source='updated_at', read_only=True)
+    messages = MessageSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Chat
+        fields = ['id', 'title', 'lastMessage', 'messages', 'createdAt', 'updatedAt']
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['_id'] = str(ret['id'])
+        return ret
 

@@ -205,7 +205,7 @@
           <div class="card fade-in" style="display:flex; flex-direction:column; height:100%;">
             <div class="card-header">
               <div>
-                <div class="card-title">Income vs Expenses</div>
+                <div class="card-title">Budget vs Expenses</div>
                 <div class="card-subtitle">6 month trend</div>
               </div>
             </div>
@@ -276,7 +276,7 @@
                 <div class="form-error-text" id="errorTitle" style="display:none;">Please enter a title</div>
               </div>
               <div class="form-group">
-                <label class="form-label">Amount ($) *</label>
+                <label class="form-label" id="quickAmountLabel">Amount ($) *</label>
                 <input type="number" class="form-input" placeholder="0.00" required id="qAmount" min="0.01" step="0.01" />
                 <div class="form-error-text" id="errorAmount" style="display:none;">Please enter a valid amount (> 0)</div>
               </div>
@@ -339,6 +339,10 @@
 
       // Dashboard initialization
       async function initDashboard(startDate, endDate) {
+        const sym = (typeof Settings !== 'undefined' && Settings._data && Settings._data.currencySymbol) || '$';
+        const quickAmountLabel = document.getElementById('quickAmountLabel');
+        if (quickAmountLabel) quickAmountLabel.textContent = `Amount (${sym}) *`;
+
         // Wait for auth to be ready
         if (typeof Auth !== "undefined") {
           await Auth.init();
@@ -381,11 +385,11 @@
 
           const budgetLabelEl = document.getElementById("kpiBudgetLabel");
           if (budgetLabelEl) {
-            budgetLabelEl.textContent = hasBudget ? "Total Budget" : "Total Income";
+            budgetLabelEl.textContent = "Total Budget";
           }
           const balanceLabelEl = document.getElementById("kpiBalanceLabel");
           if (balanceLabelEl) {
-            balanceLabelEl.textContent = hasBudget ? "Remaining Budget" : "Remaining Balance";
+            balanceLabelEl.textContent = "Remaining Budget";
           }
 
           document.getElementById("kpiBudget").textContent =
@@ -580,12 +584,12 @@
         );
         window.chartCatPie.render();
 
-        // Income vs Expense Area Chart
+        // Budget vs Expense Area Chart
         const incExpData = chartsData?.incExp || [];
         const incExpChartOpts = {
           ...apexDefaults(),
           series: [
-            { name: "Income", data: incExpData.map((d) => d.income) },
+            { name: "Budget", data: incExpData.map((d) => d.budget) },
             { name: "Expenses", data: incExpData.map((d) => d.expense) },
           ],
           chart: {

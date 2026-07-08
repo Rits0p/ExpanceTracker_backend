@@ -223,3 +223,58 @@ class UserSettings(models.Model):
 
     def __str__(self):
         return f"Settings for {self.user.username}"
+
+
+class AIChatMessage(models.Model):
+    """Stores user prompt and AI response history."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_messages')
+    prompt = models.TextField()
+    response = models.TextField()
+    crud_type = models.CharField(max_length=20, default='none')
+    crud_record = models.JSONField(blank=True, null=True)
+    is_dashboard = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"Chat for {self.user.username} at {self.created_at}"
+
+
+class Chat(models.Model):
+    """A chat conversation session."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chats')
+    title = models.CharField(max_length=255, default='New Chat')
+    last_message = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"Chat: {self.title} for {self.user.username}"
+
+
+class Message(models.Model):
+    """An individual message in a chat conversation."""
+    ROLE_CHOICES = [
+        ('user', 'User'),
+        ('assistant', 'Assistant'),
+        ('system', 'System'),
+    ]
+
+    chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name='messages')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    content = models.TextField()
+    crud_type = models.CharField(max_length=20, default='none')
+    crud_record = models.JSONField(blank=True, null=True)
+    is_dashboard = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.role} message in Chat {self.chat.id} at {self.created_at}"

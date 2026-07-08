@@ -176,13 +176,15 @@ class ReportModelTests(TestCase):
     def test_report_ordering(self):
         """Should order by created_at descending."""
         now = timezone.now()
-        Report.objects.create(
+        r1 = Report.objects.create(
             type='custom', start_date=now - timedelta(days=60),
             end_date=now - timedelta(days=30), format='csv',
         )
-        Report.objects.create(
+        r2 = Report.objects.create(
             type='monthly', start_date=now - timedelta(days=30),
             end_date=now, format='pdf',
         )
+        Report.objects.filter(id=r1.id).update(created_at=now - timedelta(seconds=10))
+        Report.objects.filter(id=r2.id).update(created_at=now)
         first = Report.objects.first()
         self.assertEqual(first.type, 'monthly')

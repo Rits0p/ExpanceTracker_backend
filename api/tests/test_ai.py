@@ -11,7 +11,7 @@ class AIAssistantTests(BaseAPITestCase):
         self.assertEqual(response.status_code, 400)
         data = response.json()
         self.assertFalse(data['success'])
-        self.assertIn("Please provide", data['message'])
+        self.assertIn("Provide 'text', 'audio', or 'image'", data['message'])
 
     @patch('api.views.ai_views.requests.post')
     def test_ai_assistant_text_post_returns_ai_response(self, mock_post):

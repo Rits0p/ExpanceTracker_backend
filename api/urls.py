@@ -37,6 +37,7 @@ from .views.analytics_views import (
     AnalyticsMonthlyBarChartView,
     AnalyticsWeeklyLineChartView,
     AnalyticsCategoryPieChartView,
+    AnalyticsBudgetExpenseChartView,
     AnalyticsCategoryView,
 )
 
@@ -73,6 +74,7 @@ urlpatterns = [
     path('analytics/charts/monthly-bar', AnalyticsMonthlyBarChartView.as_view(), name='analytics-monthly-bar'),
     path('analytics/charts/weekly-line', AnalyticsWeeklyLineChartView.as_view(), name='analytics-weekly-line'),
     path('analytics/charts/category-pie', AnalyticsCategoryPieChartView.as_view(), name='analytics-category-pie'),
+    path('analytics/charts/budget-expense', AnalyticsBudgetExpenseChartView.as_view(), name='analytics-budget-expense'),
     path('analytics/categories', AnalyticsCategoryView.as_view(), name='analytics-categories'),
     path('ai/assistant', AIAssistantView.as_view(), name='ai-assistant'),
 ]

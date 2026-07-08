@@ -8,7 +8,7 @@ from django.db.models.functions import ExtractMonth, ExtractYear, ExtractWeekDay
 from django.utils import timezone
 from datetime import datetime, timedelta, timezone as dt_timezone
 
-from ..models import Expense, Category
+from ..models import Expense, Category, Budget
 from ..utils import (
     ApiResponse,
     get_start_of_week, get_end_of_week,
@@ -80,6 +80,26 @@ def _monthly_expense_trend(user, months=6):
     ]
 
 
+def _monthly_budget_trend(user, months=6):
+    """Get monthly budget trend for the last N months."""
+    labels = get_last_n_months_labels(months)
+    trend = []
+    for label_info in labels:
+        m = label_info['month']
+        y = label_info['year']
+        budget_obj = Budget.objects.filter(user=user, month=m, year=y).first()
+        if budget_obj:
+            total_budget = float(budget_obj.total_monthly_budget)
+        else:
+            cat_sum = Category.objects.filter(user=user).aggregate(s=Sum('monthly_budget'))['s']
+            total_budget = float(cat_sum or 0)
+        trend.append({
+            '_id': {'year': y, 'month': m},
+            'total': total_budget
+        })
+    return trend
+
+
 def _daily_trend_for_week(user, start, end):
     """Get daily expense totals for a week. Uses ExtractWeekDay (1=Sunday...7=Saturday in Django)."""
     data = (
@@ -131,6 +151,17 @@ class AnalyticsKPIsView(APIView):
         all_time_start = datetime(2000, 1, 1, tzinfo=dt_timezone.utc)
 
         total_exp = _sum_expenses(request.user, all_time_start, now)
+        
+        # Get budget for this month
+        m = month_start.month
+        y = month_start.year
+        budget_obj = Budget.objects.filter(user=request.user, month=m, year=y).first()
+        if budget_obj:
+            total_budget = float(budget_obj.total_monthly_budget)
+        else:
+            cat_sum = Category.objects.filter(user=request.user).aggregate(s=Sum('monthly_budget'))['s']
+            total_budget = float(cat_sum or 0)
+
         monthly_exp = _sum_expenses(request.user, month_start, month_end)
         weekly_exp = _sum_expenses(request.user, week_start, week_end)
         category_data = _group_expenses_by_category(request.user, month_start, month_end)
@@ -145,12 +176,17 @@ class AnalyticsKPIsView(APIView):
         from ..serializers import ExpenseSerializer
         top_expense_data = ExpenseSerializer(top_expense).data if top_expense else None
 
+        balance = total_budget - monthly_exp['total']
+        savings_rate = round((balance / total_budget * 100), 2) if total_budget > 0 else 0
         days_in_month = (month_end - month_start).days or 1
         daily_avg = round(monthly_exp['total'] / days_in_month, 2)
         top_category = category_data[0] if category_data else None
 
         return ApiResponse.success({
             'totalExpense': total_exp['total'],
+            'totalIncome': total_budget,       # Fallback to total budget
+            'remainingBalance': balance,       # Remaining budget
+            'savingsRate': savings_rate,       # Budget savings rate
             'monthlyExpense': monthly_exp['total'],
             'weeklyExpense': weekly_exp['total'],
             'dailyAverage': daily_avg,
@@ -273,6 +309,29 @@ class AnalyticsCategoryPieChartView(APIView):
             end = get_end_of_month(now)
             
         data = _group_expenses_by_category(request.user, start, end)
+        return ApiResponse.success(data)
+
+
+class AnalyticsBudgetExpenseChartView(APIView):
+    """GET /api/v1/analytics/charts/budget-expense"""
+
+    def get(self, request):
+        exp_trend = _monthly_expense_trend(request.user, 6)
+        budget_trend = _monthly_budget_trend(request.user, 6)
+        labels = get_last_n_months_labels(6)
+
+        data = []
+        for label_info in labels:
+            m = label_info['month']
+            y = label_info['year']
+            exp = next((t for t in exp_trend if t['_id']['month'] == m and t['_id']['year'] == y), None)
+            bud = next((t for t in budget_trend if t['_id']['month'] == m and t['_id']['year'] == y), None)
+            data.append({
+                'label': label_info['label'],
+                'expense': exp['total'] if exp else 0,
+                'budget': bud['total'] if bud else 0,
+            })
+
         return ApiResponse.success(data)
 
 

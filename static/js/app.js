@@ -146,7 +146,20 @@ function closeModal(id) {
 // --- Toggle ---
 function initToggles() {
   document.querySelectorAll(".toggle").forEach((t) => {
-    t.addEventListener("click", () => t.classList.toggle("active"));
+    // If an element has an inline `onclick`, skip adding an automatic
+    // toggle handler to avoid double-inverting the state (click ->
+    // inline onclick toggles -> this handler toggles again).
+    if (t.getAttribute('onclick')) return;
+
+    // For toggles without inline handlers, toggle the class and
+    // persist the setting if a `data-setting` attribute is provided.
+    t.addEventListener("click", function () {
+      const newState = t.classList.toggle("active");
+      const setting = t.dataset.setting;
+      if (setting) {
+        Settings.set(setting, newState);
+      }
+    });
   });
 }
 
@@ -320,7 +333,7 @@ const API = {
     const [monthlyBar, weeklyLine, incExp] = await Promise.all([
       Auth.apiFetch("/api/v1/analytics/charts/monthly-bar"),
       Auth.apiFetch("/api/v1/analytics/charts/weekly-line"),
-      Auth.apiFetch("/api/v1/analytics/charts/income-expense"),
+      Auth.apiFetch("/api/v1/analytics/charts/budget-expense"),
     ]);
     return {
       monthlyBar: monthlyBar?.data || [],

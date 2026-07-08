@@ -229,34 +229,49 @@
 
 {% block extra_js %}
     <script>
-      // Initialize UI state based on Settings
-      const data = Settings.getAll();
+      async function loadSettings() {
+        try {
+          if (typeof Auth !== "undefined") await Auth.init();
+          const res = await Auth.apiFetch("/api/v1/settings");
+          if (res && res.data) {
+            Settings._data = { ...Settings.defaults, ...res.data };
+          }
+        } catch (e) {
+          console.warn("Failed to fetch settings from API, using local fallback:", e);
+        }
+        Settings.loadFromUser(Settings._data || {});
+        applyUIState();
+      }
 
-      // Toggles
-      if (!document.body.classList.contains("light-mode"))
-        document.getElementById("darkModeToggle").classList.add("active");
-      if (data.compactMode)
-        document.getElementById("compactModeToggle").classList.add("active");
-      if (data.animations)
-        document.getElementById("animationsToggle").classList.add("active");
-      if (data.autoBackup)
-        document.getElementById("autoBackupToggle").classList.add("active");
-      if (data.budgetAlerts)
-        document.getElementById("budgetAlertsToggle").classList.add("active");
-      if (data.weeklyReport)
-        document.getElementById("weeklyReportToggle").classList.add("active");
-      if (data.recurringReminders)
-        document
-          .getElementById("recurringRemindersToggle")
-          .classList.add("active");
+      function applyUIState() {
+        const data = Settings.getAll();
 
-      // Selects
-      document.getElementById("dateFormatSelect").value =
-        data.dateFormat || "YYYY-MM-DD";
-      document.getElementById("numberFormatSelect").value =
-        data.numberFormat || "1,000.00";
-      document.getElementById("currencySelect").value =
-        `${data.currency || "USD"}|${data.currencySymbol || "$"}`;
+        // Toggles
+        if (!document.body.classList.contains("light-mode"))
+          document.getElementById("darkModeToggle").classList.add("active");
+        if (data.compactMode)
+          document.getElementById("compactModeToggle").classList.add("active");
+        if (data.animations)
+          document.getElementById("animationsToggle").classList.add("active");
+        if (data.autoBackup)
+          document.getElementById("autoBackupToggle").classList.add("active");
+        if (data.budgetAlerts)
+          document.getElementById("budgetAlertsToggle").classList.add("active");
+        if (data.weeklyReport)
+          document.getElementById("weeklyReportToggle").classList.add("active");
+        if (data.recurringReminders)
+          document.getElementById("recurringRemindersToggle").classList.add("active");
+
+        // Selects
+        document.getElementById("dateFormatSelect").value =
+          data.dateFormat || "YYYY-MM-DD";
+        document.getElementById("numberFormatSelect").value =
+          data.numberFormat || "1,000.00";
+        document.getElementById("currencySelect").value =
+          `${data.currency || "USD"}|${data.currencySymbol || "$"}`;
+      }
+
+      loadSettings();
 
       function updateCurrency(select) {
         const [cur, sym] = select.value.split("|");

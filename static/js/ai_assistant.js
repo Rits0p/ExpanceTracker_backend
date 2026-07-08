@@ -12,16 +12,23 @@ let audioChunks = [];
 let isRecording = false;
 let recordingTimer = null;
 let recordingSeconds = 0;
+let activeChatId = null;
+let allChats = [];
+let searchQuery = '';
+
+const CHATS_API = '/api/chats/';
 
 // ── DOM Refs ─────────────────────────────────────────────────────────
 const feed = document.getElementById('aiFeed');
 const welcome = document.getElementById('aiWelcome');
 const textarea = document.getElementById('aiTextarea');
 const sendBtn = document.getElementById('aiSendBtn');
+const newChatBtn = document.getElementById('newChatBtn');
 const uploadInput = document.getElementById('aiUploadInput');
 const voiceOverlay = document.getElementById('aiVoiceOverlay');
 const voiceTimer = document.getElementById('aiVoiceTimer');
 const voiceStatus = document.getElementById('aiVoiceStatus');
+const historyList = document.getElementById('aiHistoryList');
 
 // ── Auto-grow textarea ────────────────────────────────────────────────
 if (textarea) {
@@ -53,12 +60,37 @@ document.querySelectorAll('.ai-suggestion').forEach(card => {
 
 // ── Send Message ──────────────────────────────────────────────────────
 if (sendBtn) {
-  sendBtn.addEventListener('click', sendMessage);
+  sendBtn.addEventListener('click', () => sendMessage());
+}
+if (newChatBtn) {
+  newChatBtn.addEventListener('click', startNewChat);
 }
 
 async function sendMessage(overrideText) {
   const text = overrideText || (textarea ? textarea.value.trim() : '');
   if (!text) return;
+
+  // If no active chat, create one first!
+  if (!activeChatId) {
+    try {
+      const res = await fetch(CHATS_API, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrf() }
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        const newChat = data.data;
+        allChats.unshift(newChat);
+        activeChatId = newChat.id;
+        renderChatsList();
+      } else {
+        return;
+      }
+    } catch (err) {
+      console.error('Failed to auto-create chat:', err);
+      return;
+    }
+  }
 
   hideWelcome();
   appendUserMessage(text);
@@ -74,7 +106,7 @@ async function sendMessage(overrideText) {
   formData.append('text', text);
 
   try {
-    const res = await fetch(AI_API, {
+    const res = await fetch(`${CHATS_API}${activeChatId}/messages/`, {
       method: 'POST',
       headers: { 'X-CSRFToken': getCsrf() },
       body: formData,
@@ -84,30 +116,48 @@ async function sendMessage(overrideText) {
 
     if (data.success && data.data) {
       const d = data.data;
-      appendAiMessage(d.message, d.crud_type || 'none', d.crud_record || null);
-      if (d.crud_type === 'change_theme' && d.crud_record && d.crud_record.theme) {
-        if (typeof Settings !== 'undefined') {
-          Settings.set('theme', d.crud_record.theme);
-        } else {
-          // Fallback UI change
-          if (d.crud_record.theme === 'light') {
-            document.body.classList.add('light-mode');
+      if (text === '📊 Show me my dashboard') {
+        showDashboard(false);
+      } else {
+        appendAiMessage(d.message, d.crud_type || 'none', d.crud_record || null);
+        if (d.crud_type === 'change_theme' && d.crud_record && d.crud_record.theme) {
+          if (typeof Settings !== 'undefined') {
+            Settings.set('theme', d.crud_record.theme);
           } else {
-            document.body.classList.remove('light-mode');
+            // Fallback UI change
+            if (d.crud_record.theme === 'light') {
+              document.body.classList.add('light-mode');
+            } else {
+              document.body.classList.remove('light-mode');
+            }
+            if (typeof updateThemeIcon === 'function') updateThemeIcon();
+            if (typeof updateChartsTheme === 'function') updateChartsTheme();
           }
-          if (typeof updateThemeIcon === 'function') updateThemeIcon();
-          if (typeof updateChartsTheme === 'function') updateChartsTheme();
+        } else if (d.crud_type && d.crud_type !== 'none') {
+          dispatchFinanceEvent(d.crud_type, d.crud_record || {});
+          refreshExpenseList();
         }
-      } else if (d.crud_type && d.crud_type !== 'none') {
-        dispatchFinanceEvent(d.crud_type, d.crud_record || {});
-        refreshExpenseList();
+      }
+
+      // Auto-update chat title in list if it was a new chat
+      const activeChat = allChats.find(c => c.id === activeChatId);
+      if (activeChat && (activeChat.title === 'New Chat' || activeChat.title === '')) {
+        let cleanTitle = text.slice(0, 40);
+        if (text.length > 40) cleanTitle += '...';
+        activeChat.title = cleanTitle;
+        
+        // update header title
+        const titleEl = document.getElementById('activeChatTitle');
+        if (titleEl) titleEl.textContent = cleanTitle;
+        
+        renderChatsList();
       }
     } else {
       appendAiMessage(data.message || 'Sorry, I could not process that. Please try again.', 'none', null);
     }
   } catch (err) {
     typingEl.remove();
-    appendAiMessage('\u26a0\ufe0f Network error. Please check your connection and try again.', 'none', null);
+    appendAiMessage('⚠️ Network error. Please check your connection and try again.', 'none', null);
   }
 
   scrollToBottom();
@@ -176,7 +226,7 @@ function appendUserMessage(text) {
   feed.appendChild(el);
 }
 
-function appendAiMessage(text, crudType, crudRecord) {
+function appendAiMessage(text, crudType = 'none', crudRecord = null) {
   const now = formatTime(new Date());
   const el = document.createElement('div');
   el.className = 'ai-msg assistant';
@@ -186,9 +236,9 @@ function appendAiMessage(text, crudType, crudRecord) {
 
   // CRUD badge
   const crudBadges = {
-    created: { label: '\u2705 Created', color: '#10b981' },
-    updated: { label: '\u270f\ufe0f Updated', color: '#3b82f6' },
-    deleted: { label: '\ud83d\uddd1\ufe0f Deleted', color: '#ef4444' },
+    created: { label: '✅ Created', color: '#10b981' },
+    updated: { label: '✏️ Updated', color: '#3b82f6' },
+    deleted: { label: '🗑️ Deleted', color: '#ef4444' },
   };
   const badge = crudBadges[crudType];
   const badgeHtml = badge
@@ -204,23 +254,23 @@ function appendAiMessage(text, crudType, crudRecord) {
       const fmt = v => parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
       recordHtml = `
         <div style="margin-top:12px;background:var(--glass-bg,rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 16px;">
-          <div style="font-size:11px;font-weight:700;letter-spacing:.5px;opacity:.5;margin-bottom:10px;text-transform:uppercase;">\uD83D\uDCB0 Budget — ${escapeHtml(crudRecord.month || '')}</div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.5px;opacity:.5;margin-bottom:10px;text-transform:uppercase;">💸 Budget — ${escapeHtml(crudRecord.month || '')}</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
             <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:10px 6px;">
-              <div style="font-size:18px;font-weight:800;color:#10b981;">\u20b9${fmt(crudRecord.daily)}</div>
+              <div style="font-size:18px;font-weight:800;color:#10b981;">₹${fmt(crudRecord.daily)}</div>
               <div style="font-size:11px;opacity:.6;margin-top:3px;">Daily</div>
             </div>
             <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:10px 6px;">
-              <div style="font-size:18px;font-weight:800;color:#3b82f6;">\u20b9${fmt(crudRecord.weekly)}</div>
+              <div style="font-size:18px;font-weight:800;color:#3b82f6;">₹${fmt(crudRecord.weekly)}</div>
               <div style="font-size:11px;opacity:.6;margin-top:3px;">Weekly</div>
             </div>
             <div style="background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:10px 6px;">
-              <div style="font-size:18px;font-weight:800;color:#8b5cf6;">\u20b9${fmt(crudRecord.total)}</div>
+              <div style="font-size:18px;font-weight:800;color:#8b5cf6;">₹${fmt(crudRecord.total)}</div>
               <div style="font-size:11px;opacity:.6;margin-top:3px;">Monthly</div>
             </div>
           </div>
           <div style="margin-top:10px;font-size:12px;">
-            <a href="/budget" style="color:#10b981;font-weight:600;text-decoration:none;">View budget details \u2192</a>
+            <a href="/budget" style="color:#10b981;font-weight:600;text-decoration:none;">View budget details →</a>
           </div>
         </div>`;
 
@@ -232,15 +282,15 @@ function appendAiMessage(text, crudType, crudRecord) {
       const catColor = catColors[crudRecord.category] || '#10b981';
       recordHtml = `
         <div style="margin-top:10px;background:var(--glass-bg,rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;">
-          <div style="width:40px;height:40px;border-radius:10px;background:${catColor}22;border:1px solid ${catColor}44;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">\uD83D\uDCB0</div>
+          <div style="width:40px;height:40px;border-radius:10px;background:${catColor}22;border:1px solid ${catColor}44;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">💸</div>
           <div style="flex:1;min-width:0;">
             <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(crudRecord.title)}</div>
             <div style="font-size:12px;opacity:.6;margin-top:2px;">${escapeHtml(crudRecord.category)} &bull; ${escapeHtml(crudRecord.payment_method || '')} &bull; ${date}</div>
           </div>
-          <div style="font-weight:800;font-size:16px;color:${catColor};white-space:nowrap;">\u20b9${amt}</div>
+          <div style="font-weight:800;font-size:16px;color:${catColor};white-space:nowrap;">₹${amt}</div>
         </div>
         <div style="margin-top:8px;">
-          <a href="/expenses" style="font-size:12px;color:#10b981;font-weight:600;text-decoration:none;">View all expenses \u2192</a>
+          <a href="/expenses" style="font-size:12px;color:#10b981;font-weight:600;text-decoration:none;">View all expenses →</a>
         </div>`;
     }
   }
@@ -389,6 +439,12 @@ if (uploadInput) {
   uploadInput.addEventListener('change', async () => {
     const file = uploadInput.files[0];
     if (!file) return;
+
+    // If no active chat, create one first!
+    if (!activeChatId) {
+      await startNewChatSilent();
+    }
+
     hideWelcome();
     uploadInput.value = '';
 
@@ -398,9 +454,10 @@ if (uploadInput) {
 
     const formData = new FormData();
     formData.append('image', file);
+    formData.append('text', `📎 Uploading receipt: ${file.name}`);
 
     try {
-      const res = await fetch(AI_API, {
+      const res = await fetch(`${CHATS_API}${activeChatId}/messages/`, {
         method: 'POST',
         headers: { 'X-CSRFToken': getCsrf() },
         body: formData,
@@ -410,7 +467,17 @@ if (uploadInput) {
 
       if (data.success && data.data) {
         const d = data.data;
-        appendAiMessage(d.message);
+        appendAiMessage(d.message, d.crud_type || 'none', d.crud_record || null);
+        
+        // Auto-update chat title in list if it was a new chat
+        const activeChat = allChats.find(c => c.id === activeChatId);
+        if (activeChat && (activeChat.title === 'New Chat' || activeChat.title === '')) {
+          const cleanTitle = `Receipt: ${file.name}`;
+          activeChat.title = cleanTitle;
+          const titleEl = document.getElementById('activeChatTitle');
+          if (titleEl) titleEl.textContent = cleanTitle;
+          renderChatsList();
+        }
       } else {
         appendAiMessage(data.message || 'Could not read this receipt. Please try a clearer image.');
       }
@@ -528,6 +595,11 @@ function stopRecording(cancel) {
 }
 
 async function processAudio(blob, mimeType) {
+  // If no active chat, create one first!
+  if (!activeChatId) {
+    await startNewChatSilent();
+  }
+
   hideWelcome();
   appendUserMessage('🎤 Voice message recorded');
   const typingEl = showTyping();
@@ -539,9 +611,10 @@ async function processAudio(blob, mimeType) {
   else if (mimeType && mimeType.includes('ogg')) ext = 'ogg';
 
   formData.append('audio', blob, `recording.${ext}`);
+  formData.append('text', '🎤 Voice message recorded');
 
   try {
-    const res = await fetch(AI_API, {
+    const res = await fetch(`${CHATS_API}${activeChatId}/messages/`, {
       method: 'POST',
       headers: { 'X-CSRFToken': getCsrf() },
       body: formData,
@@ -550,7 +623,18 @@ async function processAudio(blob, mimeType) {
     typingEl.remove();
 
     if (data.success && data.data) {
-      appendAiMessage(data.data.message);
+      const d = data.data;
+      appendAiMessage(d.message, d.crud_type || 'none', d.crud_record || null);
+      
+      // Auto-update chat title in list if it was a new chat
+      const activeChat = allChats.find(c => c.id === activeChatId);
+      if (activeChat && (activeChat.title === 'New Chat' || activeChat.title === '')) {
+        const cleanTitle = 'Voice Message';
+        activeChat.title = cleanTitle;
+        const titleEl = document.getElementById('activeChatTitle');
+        if (titleEl) titleEl.textContent = cleanTitle;
+        renderChatsList();
+      }
     } else {
       appendAiMessage(data.message || 'Could not process voice input. Please try again.');
     }
@@ -561,14 +645,7 @@ async function processAudio(blob, mimeType) {
   scrollToBottom();
 }
 
-// ── New Chat ──────────────────────────────────────────────────────────
-function newChat() {
-  while (feed.children.length > 0) feed.removeChild(feed.lastChild);
-  if (welcome) {
-    welcome.style.display = '';
-    welcome.style.opacity = '1';
-  }
-}
+
 
 // ── Typing Indicator ─────────────────────────────────────────────────
 function showTyping() {
@@ -586,9 +663,11 @@ function showTyping() {
 }
 
 // ── Dashboard Preview ─────────────────────────────────────────────────
-async function showDashboard() {
-  hideWelcome();
-  appendUserMessage('📊 Show me my dashboard');
+async function showDashboard(saveToHistory = true) {
+  if (saveToHistory) {
+    sendMessage('📊 Show me my dashboard');
+    return;
+  }
   const typingEl = showTyping();
   scrollToBottom();
 
@@ -703,6 +782,327 @@ function copyText(btn, text) {
   });
 }
 
+// ── ChatGPT-style History Module Functions ───────────────────────────
+async function loadChats() {
+  try {
+    const res = await fetch(CHATS_API, {
+      headers: { 'X-CSRFToken': getCsrf() }
+    });
+    const data = await res.json();
+    if (data.success) {
+      allChats = data.data || [];
+      renderChatsList();
+      
+      // Open active chat or the first chat if none is active
+      if (allChats.length > 0) {
+        if (!activeChatId || !allChats.some(c => c.id === activeChatId)) {
+          openChat(allChats[0].id);
+        } else {
+          renderActiveChatState();
+        }
+      } else {
+        activeChatId = null;
+        showWelcome();
+        if (feed) feed.innerHTML = '';
+      }
+    }
+  } catch (err) {
+    console.error('Error loading chats:', err);
+  }
+}
+
+function groupChatsByDate(chats) {
+  const groups = {
+    today: [],
+    yesterday: [],
+    week: [],
+    older: []
+  };
+
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  const yesterdayStart = new Date(todayStart);
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+  
+  const weekStart = new Date(todayStart);
+  weekStart.setDate(weekStart.getDate() - 7);
+
+  chats.forEach(chat => {
+    const updated = new Date(chat.updatedAt || chat.createdAt || new Date());
+    if (updated >= todayStart) {
+      groups.today.push(chat);
+    } else if (updated >= yesterdayStart) {
+      groups.yesterday.push(chat);
+    } else if (updated >= weekStart) {
+      groups.week.push(chat);
+    } else {
+      groups.older.push(chat);
+    }
+  });
+
+  return groups;
+}
+
+function renderChatsList() {
+  if (!historyList) return;
+  historyList.innerHTML = '';
+
+  const filtered = allChats.filter(chat =>
+    chat.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const groups = groupChatsByDate(filtered);
+  const groupLabels = {
+    today: 'Today',
+    yesterday: 'Yesterday',
+    week: 'Previous 7 Days',
+    older: 'Older'
+  };
+
+  Object.keys(groups).forEach(key => {
+    const list = groups[key];
+    if (list.length === 0) return;
+
+    const header = document.createElement('div');
+    header.className = 'ai-history-group-header';
+    header.textContent = groupLabels[key];
+    historyList.appendChild(header);
+
+    list.forEach(chat => {
+      const isActive = chat.id === activeChatId;
+      const item = document.createElement('div');
+      item.className = `ai-history-item${isActive ? ' active' : ''}`;
+      item.dataset.id = chat.id;
+
+      item.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span class="ai-history-item-text" id="chat-title-text-${chat.id}">${escapeHtml(chat.title)}</span>
+        <input type="text" class="ai-history-item-input" id="chat-title-input-${chat.id}" value="${escapeHtml(chat.title)}" style="display: none;">
+        <div class="ai-history-actions">
+          <button class="ai-history-act-btn edit-btn" onclick="startRenameChat(event, ${chat.id})" title="Rename">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </button>
+          <button class="ai-history-act-btn delete-btn" onclick="triggerDeleteChat(event, ${chat.id})" title="Delete">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
+      `;
+
+      item.addEventListener('click', (e) => {
+        if (e.target.closest('.ai-history-actions') || e.target.closest('input')) return;
+        openChat(chat.id);
+      });
+
+      const input = item.querySelector('input');
+      if (input) {
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            saveRenameChat(chat.id, input.value);
+          } else if (e.key === 'Escape') {
+            cancelRenameChat(chat.id);
+          }
+        });
+        input.addEventListener('blur', () => {
+          saveRenameChat(chat.id, input.value);
+        });
+      }
+
+      historyList.appendChild(item);
+    });
+  });
+}
+
+function startRenameChat(event, chatId) {
+  event.stopPropagation();
+  const textSpan = document.getElementById(`chat-title-text-${chatId}`);
+  const inputEl = document.getElementById(`chat-title-input-${chatId}`);
+  if (textSpan && inputEl) {
+    textSpan.style.display = 'none';
+    inputEl.style.display = 'block';
+    inputEl.focus();
+    inputEl.select();
+  }
+}
+
+async function saveRenameChat(chatId, newTitle) {
+  const textSpan = document.getElementById(`chat-title-text-${chatId}`);
+  const inputEl = document.getElementById(`chat-title-input-${chatId}`);
+  const title = newTitle.trim();
+  
+  if (!title) {
+    cancelRenameChat(chatId);
+    return;
+  }
+
+  if (textSpan && inputEl) {
+    textSpan.textContent = title;
+    textSpan.style.display = 'block';
+    inputEl.style.display = 'none';
+  }
+
+  try {
+    const res = await fetch(`${CHATS_API}${chatId}/`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrf()
+      },
+      body: JSON.stringify({ title })
+    });
+    const data = await res.json();
+    if (data.success) {
+      const chat = allChats.find(c => c.id === chatId);
+      if (chat) chat.title = title;
+      
+      if (chatId === activeChatId) {
+        const titleEl = document.getElementById('activeChatTitle');
+        if (titleEl) titleEl.textContent = title;
+      }
+    } else {
+      loadChats();
+    }
+  } catch (err) {
+    loadChats();
+  }
+}
+
+function cancelRenameChat(chatId) {
+  const textSpan = document.getElementById(`chat-title-text-${chatId}`);
+  const inputEl = document.getElementById(`chat-title-input-${chatId}`);
+  if (textSpan && inputEl) {
+    inputEl.value = textSpan.textContent;
+    textSpan.style.display = 'block';
+    inputEl.style.display = 'none';
+  }
+}
+
+async function triggerDeleteChat(event, chatId) {
+  event.stopPropagation();
+  if (!confirm('Are you sure you want to delete this conversation?')) return;
+
+  try {
+    const res = await fetch(`${CHATS_API}${chatId}/`, {
+      method: 'DELETE',
+      headers: { 'X-CSRFToken': getCsrf() }
+    });
+    const data = await res.json();
+    if (data.success) {
+      allChats = allChats.filter(c => c.id !== chatId);
+      if (activeChatId === chatId) {
+        activeChatId = allChats.length > 0 ? allChats[0].id : null;
+      }
+      renderChatsList();
+      if (activeChatId) {
+        openChat(activeChatId);
+      } else {
+        showWelcome();
+        if (feed) feed.innerHTML = '';
+        const titleEl = document.getElementById('activeChatTitle');
+        if (titleEl) titleEl.textContent = 'AI Expense Assistant';
+      }
+    }
+  } catch (err) {
+    console.error('Error deleting chat:', err);
+  }
+}
+
+async function startNewChat() {
+  try {
+    const res = await fetch(CHATS_API, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCsrf() }
+    });
+    const data = await res.json();
+    if (data.success && data.data) {
+      const newChat = data.data;
+      allChats.unshift(newChat);
+      activeChatId = newChat.id;
+      renderChatsList();
+      openChat(newChat.id);
+    }
+  } catch (err) {
+    console.error('Error creating new chat:', err);
+  }
+}
+
+async function startNewChatSilent() {
+  try {
+    const res = await fetch(CHATS_API, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCsrf() }
+    });
+    const data = await res.json();
+    if (data.success && data.data) {
+      const newChat = data.data;
+      allChats.unshift(newChat);
+      activeChatId = newChat.id;
+      renderChatsList();
+    }
+  } catch (e) {}
+}
+
+async function openChat(chatId) {
+  activeChatId = chatId;
+  renderActiveChatState();
+
+  if (feed) feed.innerHTML = '';
+  hideWelcome();
+
+  const typingEl = showTyping();
+  scrollToBottom();
+
+  try {
+    const res = await fetch(`${CHATS_API}${chatId}/`, {
+      headers: { 'X-CSRFToken': getCsrf() }
+    });
+    const data = await res.json();
+    typingEl.remove();
+
+    if (data.success && data.data) {
+      const chat = data.data;
+      
+      const titleEl = document.getElementById('activeChatTitle');
+      if (titleEl) titleEl.textContent = chat.title;
+
+      const messages = chat.messages || [];
+      if (messages.length === 0) {
+        showWelcome();
+      } else {
+        messages.forEach(msg => {
+          if (msg.role === 'user') {
+            appendUserMessage(msg.content);
+          } else if (msg.isDashboard) {
+            showDashboard(false);
+          } else {
+            appendAiMessage(msg.content, msg.crudType || 'none', msg.crudRecord || null);
+          }
+        });
+        scrollToBottom();
+      }
+    }
+  } catch (err) {
+    typingEl.remove();
+    console.error('Error opening chat:', err);
+  }
+}
+
+function renderActiveChatState() {
+  document.querySelectorAll('.ai-history-item').forEach(item => {
+    const id = parseInt(item.dataset.id);
+    if (id === activeChatId) {
+      item.classList.add('active');
+    } else {
+      item.classList.remove('active');
+    }
+  });
+}
+
+function handleSearch(query) {
+  searchQuery = query;
+  renderChatsList();
+}
+
 function getCsrf() {
   const name = 'csrftoken';
   for (const c of document.cookie.split(';')) {
@@ -712,3 +1112,8 @@ function getCsrf() {
   const el = document.querySelector('[name=csrfmiddlewaretoken]');
   return el ? el.value : '';
 }
+
+// Load chat history from database on load
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadChats();
+});
