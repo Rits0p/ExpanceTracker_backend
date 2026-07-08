@@ -472,6 +472,24 @@ def _execute_crud(user, intent: str, data: dict) -> dict:
                 lines.append(f"• {c.icon} **{c.name}**{budget_str}")
             return ok("📂 **Your Categories:**\n" + "\n".join(lines), "none", records)
 
+        # ── CHANGE THEME ──────────────────────────────────────────────
+        elif intent == "change_theme":
+            theme = data.get("theme", "dark").lower()
+            if theme not in ["light", "dark"]:
+                theme = "dark"
+            
+            # Save it to the user's settings if possible
+            from ..models import UserSettings
+            try:
+                us, _ = UserSettings.objects.get_or_create(user=user)
+                if us.theme != theme:
+                    us.theme = theme
+                    us.save()
+            except Exception as e:
+                logger.warning(f"Failed to update theme in DB: {e}")
+
+            return ok(f"🎨 Theme changed to **{theme}** mode.", "change_theme", {"theme": theme})
+
     except Exception as exc:
         logger.exception(f"CRUD execution error for intent={intent}: {exc}")
         return err(f"❌ Operation failed: {exc}")
@@ -504,6 +522,7 @@ Available intents:
   edit_category   — data: {{name, fields: {{monthly_budget?, icon?, color?}}}}
   del_category    — data: {{name}}
   list_categories — data: {{}}
+  change_theme    — data: {{theme: "light" | "dark"}}
 
 Rules:
 - message: 1-3 sentences, friendly. Use **bold** for amounts and names.
@@ -525,6 +544,7 @@ CRUD_INTENTS = {
     "add_expense", "edit_expense", "del_expense", "list_expenses",
     "set_budget",  "del_budget",   "list_budgets",
     "add_category","edit_category","del_category","list_categories",
+    "change_theme",
 }
 
 

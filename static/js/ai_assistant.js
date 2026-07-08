@@ -85,7 +85,20 @@ async function sendMessage(overrideText) {
     if (data.success && data.data) {
       const d = data.data;
       appendAiMessage(d.message, d.crud_type || 'none', d.crud_record || null);
-      if (d.crud_type && d.crud_type !== 'none') {
+      if (d.crud_type === 'change_theme' && d.crud_record && d.crud_record.theme) {
+        if (typeof Settings !== 'undefined') {
+          Settings.set('theme', d.crud_record.theme);
+        } else {
+          // Fallback UI change
+          if (d.crud_record.theme === 'light') {
+            document.body.classList.add('light-mode');
+          } else {
+            document.body.classList.remove('light-mode');
+          }
+          if (typeof updateThemeIcon === 'function') updateThemeIcon();
+          if (typeof updateChartsTheme === 'function') updateChartsTheme();
+        }
+      } else if (d.crud_type && d.crud_type !== 'none') {
         dispatchFinanceEvent(d.crud_type, d.crud_record || {});
         refreshExpenseList();
       }
