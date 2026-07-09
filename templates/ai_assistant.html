@@ -14,15 +14,21 @@
     <div class="ai-sidebar" id="aiSidebar">
       <div class="ai-sidebar-header">
         <button class="ai-new-chat-btn" onclick="startNewChat()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
           <span>New Chat</span>
         </button>
       </div>
-      
+
       <!-- Search Conversations -->
       <div class="ai-sidebar-search">
         <div class="ai-search-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
           <input type="text" id="aiSearchInput" placeholder="Search chats..." oninput="handleSearch(this.value)">
         </div>
       </div>
@@ -36,141 +42,91 @@
     <!-- Right Content: Chat Area -->
     <div class="ai-main" id="aiMain">
 
-    <div class="card-header ai-card-header">
-      <div>
-        <h3 class="card-title">AI Expense Assistant</h3>
-        <p class="card-subtitle">Manage expenses using chat, voice, and receipt scanning</p>
+      <div class="ai-chat-header">
+        <div class="ai-chat-header-title">
+          <h3>AI Assistant</h3>
+          <p>Online</p>
+        </div>
+        <!-- Actions removed to adhere to minimalistic dashboard style -->
       </div>
-      <div class="ai-header-actions">
-        <button class="ai-hbtn" id="aiHeaderUploadBtn" title="Upload Receipt">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-          <span>Upload Receipt</span>
-        </button>
-        <button class="ai-hbtn" onclick="openVoice()" title="Voice Input">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-          <span>Voice</span>
-        </button>
-        <button class="ai-hbtn primary" onclick="newChat()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          <span>New Chat</span>
-        </button>
-      </div>
-    </div>
 
-    <!-- Chat Feed -->
-    <div class="ai-feed" id="aiFeed">
+      <div class="ai-chat-content-wrap">
+        <!-- Chat Feed -->
+        <div class="ai-feed" id="aiFeed">
 
-      <!-- Welcome Screen -->
-      <div class="ai-welcome" id="aiWelcome">
-        <div class="ai-welcome-graphic" aria-hidden="true">
-          <div class="ai-orb ai-orb-one"></div>
-          <div class="ai-orb ai-orb-two"></div>
-          <svg viewBox="0 0 240 180" fill="none">
-            <rect x="28" y="34" width="184" height="112" rx="28" fill="rgba(255,255,255,0.16)" stroke="rgba(255,255,255,0.3)"/>
-            <rect x="56" y="58" width="78" height="10" rx="5" fill="rgba(255,255,255,0.9)"/>
-            <rect x="56" y="80" width="112" height="10" rx="5" fill="rgba(255,255,255,0.7)"/>
-            <rect x="56" y="102" width="92" height="10" rx="5" fill="rgba(255,255,255,0.55)"/>
-            <circle cx="173" cy="96" r="28" fill="rgba(254,119,67,0.9)"/>
-            <path d="M162 96h22" stroke="white" stroke-width="5" stroke-linecap="round"/>
-            <path d="M173 85v22" stroke="white" stroke-width="5" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div class="ai-welcome-icon">
-          <svg class="ai-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M12 2a5 5 0 0 0-5 5v2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Z"/>
-            <path d="M9 10V7a3 3 0 0 1 6 0v3"/>
-          </svg>
-        </div>
-        <div class="ai-hero-copy">
-          <div class="ai-hero-badge">✨ Smart finance copilot</div>
-          <h1>Welcome back, {{ user.username|default:"there" }}!</h1>
-          <p class="ai-welcome-sub">
-            Your AI-powered financial assistant. I can help you track expenses,
-            scan receipts, analyze spending, and manage your budget effortlessly.
-          </p>
-        </div>
-        <ul class="ai-welcome-list">
-          <li><span class="ai-pill-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 7h8"/><path d="M8 12h8"/><path d="M8 17h5"/><rect x="4" y="4" width="16" height="16" rx="2"/></svg></span><span>Add expenses</span></li>
-          <li><span class="ai-pill-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16"/><path d="M7 4v16"/><path d="M17 4v16"/><rect x="4" y="4" width="16" height="16" rx="2"/></svg></span><span>Scan receipts</span></li>
-          <li><span class="ai-pill-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19h16"/><path d="M7 16V9"/><path d="M12 16V5"/><path d="M17 16v-3"/></svg></span><span>Analyze spending</span></li>
-          <li><span class="ai-pill-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19V9"/><path d="M12 19V5"/><path d="M19 19v-7"/></svg></span><span>Create reports</span></li>
-          <li><span class="ai-pill-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16"/><path d="M7 7V5h10v2"/><path d="M7 7v10a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V7"/></svg></span><span>Track budgets</span></li>
-          <li><span class="ai-pill-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6"/><path d="M12 16v6"/><path d="M4 12h6"/><path d="M14 12h6"/><circle cx="12" cy="12" r="4"/></svg></span><span>Voice input</span></li>
-        </ul>
+          <!-- Welcome Screen -->
+          <div class="ai-welcome" id="aiWelcome">
+            <div class="ai-welcome-logo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path
+                  d="M12 2a5 5 0 0 0-5 5v2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Z" />
+                <path d="M9 10V7a3 3 0 0 1 6 0v3" />
+              </svg>
+            </div>
+            <h1 class="ai-welcome-heading">How can I help you today?</h1>
+            <p class="ai-welcome-sub">I can help with expense analysis, receipt scanning, and budget tracking.</p>
 
-        <!-- Suggestion Cards -->
-        <div class="ai-suggestions">
-          <button class="ai-suggestion" data-prompt="Add ₹500 grocery expense today paid in cash">
-            <span class="ai-suggestion-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg></span>
-            <span class="ai-suggestion-text">Add ₹500 Grocery Expense</span>
-          </button>
-          <button class="ai-suggestion" onclick="document.getElementById('aiUploadInput').click()">
-            <span class="ai-suggestion-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M7 15l3-3 2 2 3-4 2 2"/></svg></span>
-            <span class="ai-suggestion-text">Scan a Receipt</span>
-          </button>
-          <button class="ai-suggestion" onclick="openVoice()">
-            <span class="ai-suggestion-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><path d="M12 18v3"/><path d="M8 21h8"/></svg></span>
-            <span class="ai-suggestion-text">Add Expense by Voice</span>
-          </button>
-          <button class="ai-suggestion" onclick="showDashboard()">
-            <span class="ai-suggestion-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19V10"/><path d="M12 19V5"/><path d="M19 19v-7"/></svg></span>
-            <span class="ai-suggestion-text">Show My Dashboard</span>
-          </button>
-          <button class="ai-suggestion" data-prompt="Set my monthly budget to ₹20,000">
-            <span class="ai-suggestion-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
-            <span class="ai-suggestion-text">Set Monthly Budget</span>
-          </button>
-          <button class="ai-suggestion" data-prompt="Create a new category called Travel with ₹5000 monthly budget">
-            <span class="ai-suggestion-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></span>
-            <span class="ai-suggestion-text">Create New Category</span>
-          </button>
-          <button class="ai-suggestion" data-prompt="Switch to light mode">
-            <span class="ai-suggestion-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></span>
-            <span class="ai-suggestion-text">Switch to Light Mode</span>
-          </button>
-          <button class="ai-suggestion" data-prompt="List all my categories">
-            <span class="ai-suggestion-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
-            <span class="ai-suggestion-text">List My Categories</span>
-          </button>
-          <button class="ai-suggestion" data-prompt="What is my remaining budget this month?">
-            <span class="ai-suggestion-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16"/><path d="M7 7V5h10v2"/><path d="M7 7v10a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V7"/></svg></span>
-            <span class="ai-suggestion-text">Remaining Budget</span>
-          </button>
-          <button class="ai-suggestion" data-prompt="Show my spending insights and top categories for this month">
-            <span class="ai-suggestion-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19V9"/><path d="M12 19V5"/><path d="M19 19v-7"/><path d="M3 19h18"/></svg></span>
-            <span class="ai-suggestion-text">Spending Insights</span>
-          </button>
+            <!-- Suggestion Cards -->
+            <div class="ai-suggestions-clean">
+              <button class="ai-sugg-card" data-prompt="Can you summarize my spending report for this month?">
+                <div class="ai-sugg-icon">📄</div>
+                <div class="ai-sugg-text">Summarize this report</div>
+              </button>
+              <button class="ai-sugg-card" data-prompt="Analyze my expenses and show my top categories.">
+                <div class="ai-sugg-icon">💰</div>
+                <div class="ai-sugg-text">Analyze expenses</div>
+              </button>
+              <button class="ai-sugg-card" data-prompt="What is my remaining budget this month?">
+                <div class="ai-sugg-icon">📊</div>
+                <div class="ai-sugg-text">Generate dashboard</div>
+              </button>
+              <button class="ai-sugg-card" data-prompt="Write an email draft for my travel expense reimbursement.">
+                <div class="ai-sugg-icon">✍️</div>
+                <div class="ai-sugg-text">Write an email</div>
+              </button>
+            </div>
+          </div>
+
         </div>
-      </div>
+
+        <!-- Input Area -->
+        <div class="ai-input-area">
+          <div class="ai-input-wrap">
+            <textarea class="ai-textarea" id="aiTextarea"
+              placeholder="Ask anything... (Add expense, scan receipt, etc.)" rows="1"></textarea>
+            <div class="ai-input-actions">
+              <!-- Reuse original click handlers -->
+              <button class="ai-input-btn" onclick="document.getElementById('aiUploadInput').click()"
+                title="Attach image or receipt">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+              </button>
+              <button class="ai-input-btn" onclick="openVoice()" title="Voice command">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <line x1="12" y1="19" x2="12" y2="23" />
+                </svg>
+              </button>
+              <!-- Primary Send Button -->
+              <button class="ai-send-btn ai-primary-blue" id="aiSendBtn" title="Send">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="22" y1="2" x2="11" y2="13" />
+                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="ai-input-hint">AI can make mistakes. Consider verifying financial details.</div>
+          <input type="file" id="aiUploadInput" accept="image/*,.pdf" hidden>
+        </div>
+
+      </div> <!-- Close ai-chat-content-wrap -->
 
     </div>
-
-    <!-- Input Area -->
-    <div class="ai-input-area">
-      <div class="ai-input-wrap">
-        <textarea
-          class="ai-textarea"
-          id="aiTextarea"
-          placeholder="Type something like 'I spent ₹450 on groceries at Big Bazaar today'..."
-          rows="1"
-        ></textarea>
-        <div class="ai-input-actions">
-          <button class="ai-input-btn" id="aiUploadBtn" title="Upload Receipt / Image">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          </button>
-          <button class="ai-input-btn" onclick="openVoice()" title="Voice Input">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
-          </button>
-          <button class="ai-send-btn" id="aiSendBtn" title="Send">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          </button>
-        </div>
-      </div>
-      <div class="ai-input-hint">AI may make mistakes. Always review extracted expense details before saving.</div>
-      <input type="file" id="aiUploadInput" accept="image/*,.pdf" hidden>
-    </div>
-
-  </div>
   </div>
 </div>
 
@@ -183,9 +139,9 @@
       <div class="ai-mic-ring"></div>
       <button class="ai-mic-btn-big">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32">
-          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-          <line x1="12" y1="19" x2="12" y2="23"/>
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+          <line x1="12" y1="19" x2="12" y2="23" />
         </svg>
       </button>
     </div>
@@ -193,10 +149,14 @@
     <p>Speak clearly about your expense</p>
     <div class="ai-voice-timer" id="aiVoiceTimer">0:00</div>
     <div class="ai-waveform">
-      <div class="ai-wave-bar"></div><div class="ai-wave-bar"></div>
-      <div class="ai-wave-bar"></div><div class="ai-wave-bar"></div>
-      <div class="ai-wave-bar"></div><div class="ai-wave-bar"></div>
-      <div class="ai-wave-bar"></div><div class="ai-wave-bar"></div>
+      <div class="ai-wave-bar"></div>
+      <div class="ai-wave-bar"></div>
+      <div class="ai-wave-bar"></div>
+      <div class="ai-wave-bar"></div>
+      <div class="ai-wave-bar"></div>
+      <div class="ai-wave-bar"></div>
+      <div class="ai-wave-bar"></div>
+      <div class="ai-wave-bar"></div>
       <div class="ai-wave-bar"></div>
     </div>
     <div class="ai-voice-actions">

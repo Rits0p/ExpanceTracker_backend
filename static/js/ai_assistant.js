@@ -145,11 +145,11 @@ async function sendMessage(overrideText) {
         let cleanTitle = text.slice(0, 40);
         if (text.length > 40) cleanTitle += '...';
         activeChat.title = cleanTitle;
-        
+
         // update header title
         const titleEl = document.getElementById('activeChatTitle');
         if (titleEl) titleEl.textContent = cleanTitle;
-        
+
         renderChatsList();
       }
     } else {
@@ -303,7 +303,7 @@ function appendAiMessage(text, crudType = 'none', crudRecord = null) {
           <a href="/expenses" style="font-size:12px;color:#10b981;font-weight:600;text-decoration:none;">View all expenses →</a>
         </div>`;
 
-    // ── CATEGORY card ────────────────────────────────────────────────
+      // ── CATEGORY card ────────────────────────────────────────────────
     } else if (crudRecord.type === 'category' || (crudRecord.name && crudRecord.color)) {
       const catColor = crudRecord.color || '#10b981';
       const catBudget = parseFloat(crudRecord.monthlyBudget || crudRecord.monthly_budget || 0);
@@ -500,7 +500,7 @@ if (uploadInput) {
       if (data.success && data.data) {
         const d = data.data;
         appendAiMessage(d.message, d.crud_type || 'none', d.crud_record || null);
-        
+
         // Auto-update chat title in list if it was a new chat
         const activeChat = allChats.find(c => c.id === activeChatId);
         if (activeChat && (activeChat.title === 'New Chat' || activeChat.title === '')) {
@@ -657,7 +657,7 @@ async function processAudio(blob, mimeType) {
     if (data.success && data.data) {
       const d = data.data;
       appendAiMessage(d.message, d.crud_type || 'none', d.crud_record || null);
-      
+
       // Auto-update chat title in list if it was a new chat
       const activeChat = allChats.find(c => c.id === activeChatId);
       if (activeChat && (activeChat.title === 'New Chat' || activeChat.title === '')) {
@@ -824,7 +824,7 @@ async function loadChats() {
     if (data.success) {
       allChats = data.data || [];
       renderChatsList();
-      
+
       // Open active chat or the first chat if none is active
       if (allChats.length > 0) {
         if (!activeChatId || !allChats.some(c => c.id === activeChatId)) {
@@ -853,10 +853,10 @@ function groupChatsByDate(chats) {
 
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  
+
   const yesterdayStart = new Date(todayStart);
   yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-  
+
   const weekStart = new Date(todayStart);
   weekStart.setDate(weekStart.getDate() - 7);
 
@@ -911,18 +911,29 @@ function renderChatsList() {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <span class="ai-history-item-text" id="chat-title-text-${chat.id}">${escapeHtml(chat.title)}</span>
         <input type="text" class="ai-history-item-input" id="chat-title-input-${chat.id}" value="${escapeHtml(chat.title)}" style="display: none;">
-        <div class="ai-history-actions">
-          <button class="ai-history-act-btn edit-btn" onclick="startRenameChat(event, ${chat.id})" title="Rename">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        <div class="ai-three-dot-wrap">
+          <button class="ai-three-dot-btn" onclick="toggleChatMenu(event, ${chat.id})" title="More">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="5" r="1.5"/>
+              <circle cx="12" cy="12" r="1.5"/>
+              <circle cx="12" cy="19" r="1.5"/>
+            </svg>
           </button>
-          <button class="ai-history-act-btn delete-btn" onclick="triggerDeleteChat(event, ${chat.id})" title="Delete">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-          </button>
+          <div class="ai-chat-menu" id="chat-menu-${chat.id}">
+            <button class="ai-chat-menu-item" onclick="startRenameChat(event, ${chat.id})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              Rename
+            </button>
+            <button class="ai-chat-menu-item danger" onclick="triggerDeleteChat(event, ${chat.id})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              Delete
+            </button>
+          </div>
         </div>
       `;
 
       item.addEventListener('click', (e) => {
-        if (e.target.closest('.ai-history-actions') || e.target.closest('input')) return;
+        if (e.target.closest('.ai-three-dot-wrap') || e.target.closest('input')) return;
         openChat(chat.id);
       });
 
@@ -961,7 +972,7 @@ async function saveRenameChat(chatId, newTitle) {
   const textSpan = document.getElementById(`chat-title-text-${chatId}`);
   const inputEl = document.getElementById(`chat-title-input-${chatId}`);
   const title = newTitle.trim();
-  
+
   if (!title) {
     cancelRenameChat(chatId);
     return;
@@ -986,7 +997,7 @@ async function saveRenameChat(chatId, newTitle) {
     if (data.success) {
       const chat = allChats.find(c => c.id === chatId);
       if (chat) chat.title = title;
-      
+
       if (chatId === activeChatId) {
         const titleEl = document.getElementById('activeChatTitle');
         if (titleEl) titleEl.textContent = title;
@@ -1071,7 +1082,7 @@ async function startNewChatSilent() {
       activeChatId = newChat.id;
       renderChatsList();
     }
-  } catch (e) {}
+  } catch (e) { }
 }
 
 async function openChat(chatId) {
@@ -1093,7 +1104,7 @@ async function openChat(chatId) {
 
     if (data.success && data.data) {
       const chat = data.data;
-      
+
       const titleEl = document.getElementById('activeChatTitle');
       if (titleEl) titleEl.textContent = chat.title;
 
@@ -1129,6 +1140,21 @@ function renderActiveChatState() {
     }
   });
 }
+
+function toggleChatMenu(event, chatId) {
+  event.stopPropagation();
+  document.querySelectorAll('.ai-chat-menu.open').forEach(menu => {
+    if (menu.id !== `chat-menu-${chatId}`) menu.classList.remove('open');
+  });
+  const menu = document.getElementById(`chat-menu-${chatId}`);
+  if (menu) menu.classList.toggle('open');
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.ai-three-dot-wrap')) {
+    document.querySelectorAll('.ai-chat-menu.open').forEach(menu => menu.classList.remove('open'));
+  }
+});
 
 function handleSearch(query) {
   searchQuery = query;
