@@ -3,8 +3,74 @@
 {% block title %}Budget{% endblock %}
 {% block page_title %}Budget{% endblock %}
 {% block page_subtitle %}Plan and monitor your spending limits{% endblock %}
-
 {% block content %}
+<style>
+  /* Global Budget Modal Styles */
+  .budget-modal-period {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border-color);
+    margin-bottom: 12px;
+    transition: border-color 0.2s;
+  }
+
+  .budget-modal-period:focus-within {
+    border-color: var(--accent-primary);
+  }
+
+  .bmp-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .bmp-info {
+    flex: 1;
+  }
+
+  .bmp-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+  }
+
+  .bmp-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .bmp-input {
+    width: 110px;
+    text-align: right;
+    background: var(--bg-page);
+    border: 1.5px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    transition: border-color 0.2s;
+  }
+
+  .bmp-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+  }
+
+  .bmp-input::placeholder {
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+</style>
 <div class="page fade-in">
   <!-- Top KPIs / Monthly Budget / Progress -->
   <div class="kpi-grid">
@@ -161,6 +227,70 @@
         <button type="button" class="btn btn-secondary" onclick="closeModal('budgetModal')">
           Cancel
         </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- GLOBAL BUDGET MODAL -->
+<div class="modal-overlay" id="globalBudgetModal">
+  <div class="modal" style="max-width: 460px;">
+    <div class="modal-header">
+      <div>
+        <h2 class="modal-title" style="margin-bottom:2px;">Set Budgets</h2>
+        <p style="font-size:12px; color:var(--text-muted); margin:0;">Each period is independent &amp; saved to your
+          account</p>
+      </div>
+      <button class="modal-close" onclick="closeModal('globalBudgetModal')">✕</button>
+    </div>
+    <form id="globalBudgetForm" style="margin-top:8px;">
+
+      <div class="budget-modal-period">
+        <div class="bmp-icon" style="background:rgba(254,119,67,0.12); color:#FE7743;"><i class="ph ph-sun-horizon"></i>
+        </div>
+        <div class="bmp-info">
+          <div class="bmp-label">Daily Budget</div>
+          <div class="bmp-hint">Amount you plan to spend each day</div>
+        </div>
+        <input type="number" class="bmp-input" id="gDaily" min="0" placeholder="e.g. 500">
+      </div>
+
+      <div class="budget-modal-period">
+        <div class="bmp-icon" style="background:rgba(68,125,155,0.12); color:#447D9B;"><i
+            class="ph ph-calendar-dots"></i></div>
+        <div class="bmp-info">
+          <div class="bmp-label">Weekly Budget</div>
+          <div class="bmp-hint">Amount you plan to spend per week</div>
+        </div>
+        <input type="number" class="bmp-input" id="gWeekly" min="0" placeholder="e.g. 3500">
+      </div>
+
+      <div class="budget-modal-period">
+        <div class="bmp-icon" style="background:rgba(139,92,246,0.12); color:#8B5CF6;"><i
+            class="ph ph-calendar-check"></i></div>
+        <div class="bmp-info">
+          <div class="bmp-label">Monthly Budget</div>
+          <div class="bmp-hint">Total allowance for the current month</div>
+        </div>
+        <input type="number" class="bmp-input" id="gMonthly" min="0" placeholder="e.g. 15000">
+      </div>
+
+      <div class="budget-modal-period">
+        <div class="bmp-icon" style="background:rgba(44,182,125,0.12); color:#2CB67D;"><i
+            class="ph ph-chart-line-up"></i></div>
+        <div class="bmp-info">
+          <div class="bmp-label">Yearly Budget</div>
+          <div class="bmp-hint">Your annual spending target</div>
+        </div>
+        <input type="number" class="bmp-input" id="gYearly" min="0" placeholder="e.g. 180000">
+      </div>
+
+      <div style="display: flex; gap: 12px; margin-top: 20px;">
+        <button type="submit" class="btn btn-primary"
+          style="flex: 1; gap:6px; display:flex; align-items:center; justify-content:center;">
+          <i class="ph ph-floppy-disk"></i> Save Budgets
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="closeModal('globalBudgetModal')">Cancel</button>
       </div>
     </form>
   </div>
@@ -376,7 +506,35 @@
       if (timeframe === "weekly") normalizedMonthly = amount * 4.33;
       if (timeframe === "daily") normalizedMonthly = amount * 30;
 
-      // 1. Update category budget
+      // 1. Check if the newly set category budgets exceed overall budget limit
+      const overallBudget = (budgetWarnings && budgetWarnings.budget) ? budgetWarnings.budget : 0;
+      const proposedTotal = allCategories.reduce((sum, c) => {
+        if (String(c.id) === String(catId))
+          return sum + Math.round(normalizedMonthly);
+        return sum + (parseFloat(c.monthlyBudget) || 0);
+      }, 0);
+
+      let updateOverall = false;
+      if (overallBudget > 0 && proposedTotal > overallBudget) {
+        showToast("Category budgets would exceed your total monthly limit. Please extend it.", "warning");
+
+        // Open the global budget modal, pre-fill the proposed total
+        document.getElementById("gMonthly").value = proposedTotal;
+
+        // Pre-fill existing limits if available
+        if (budgetWarnings) {
+          if (budgetWarnings.daily_budget) document.getElementById("gDaily").value = budgetWarnings.daily_budget;
+          if (budgetWarnings.weekly_budget) document.getElementById("gWeekly").value = budgetWarnings.weekly_budget;
+          if (budgetWarnings.yearly_budget) document.getElementById("gYearly").value = budgetWarnings.yearly_budget;
+        }
+
+        closeModal("budgetModal");
+        openModal("globalBudgetModal");
+
+        return; // Stop if they need to extend the budget manually using the new modal
+      }
+
+      // 2. Update only the category budget
       const catRes = await Auth.apiFetch(`/api/v1/categories/${catId}`, {
         method: "PUT",
         body: JSON.stringify({
@@ -384,26 +542,22 @@
         }),
       });
 
-      // 2. Also set overall monthly budget via Budget API
-      const now = new Date();
-      const totalBudget = allCategories.reduce((sum, c) => {
-        if (String(c.id) === String(catId))
-          return sum + Math.round(normalizedMonthly);
-        return sum + (parseFloat(c.monthlyBudget) || 0);
-      }, 0);
-
-      await Auth.apiFetch("/api/v1/budget", {
-        method: "POST",
-        body: JSON.stringify({
-          month: now.getMonth() + 1,
-          year: now.getFullYear(),
-          totalMonthlyBudget: totalBudget,
-          warningThreshold: 80,
-        }),
-      });
+      // 3. Update overall budget if needed, or if it was previously unset (0)
+      if (updateOverall || overallBudget === 0) {
+        const now = new Date();
+        await Auth.apiFetch("/api/v1/budget", {
+          method: "POST",
+          body: JSON.stringify({
+            month: now.getMonth() + 1,
+            year: now.getFullYear(),
+            totalMonthlyBudget: proposedTotal,
+            warningThreshold: 80,
+          }),
+        });
+      }
 
       if (catRes && catRes.success) {
-        showToast("Budget updated successfully!", "success");
+        showToast("Category budget updated successfully!", "success");
         closeModal("budgetModal");
         fetchBudgetData();
       } else {
@@ -414,6 +568,37 @@
   // Listen to AI budget/expense changes and refresh the page data
   window.addEventListener('ai:finance:changed', (e) => {
     fetchBudgetData();
+  });
+
+  // Handle Global Budget Submission
+  document.getElementById("globalBudgetForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const bDaily = document.getElementById("gDaily").value;
+    const bWeekly = document.getElementById("gWeekly").value;
+    const bMonthly = document.getElementById("gMonthly").value;
+    const bYearly = document.getElementById("gYearly").value;
+
+    const now = new Date();
+    const res = await Auth.apiFetch("/api/v1/budget", {
+      method: "POST",
+      body: JSON.stringify({
+        month: now.getMonth() + 1,
+        year: now.getFullYear(),
+        totalMonthlyBudget: bMonthly ? parseFloat(bMonthly) : 0,
+        dailyBudget: bDaily ? parseFloat(bDaily) : 0,
+        weeklyBudget: bWeekly ? parseFloat(bWeekly) : 0,
+        yearlyBudget: bYearly ? parseFloat(bYearly) : 0,
+        warningThreshold: 80,
+      }),
+    });
+
+    if (res && res.success) {
+      showToast("Global budgets updated successfully!", "success");
+      closeModal("globalBudgetModal");
+      fetchBudgetData();
+    } else {
+      showToast("Failed to update global budgets", "error");
+    }
   });
 </script>
 {% endblock %}
