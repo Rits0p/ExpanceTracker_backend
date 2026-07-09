@@ -39,6 +39,54 @@ class Category(models.Model):
         return f"{self.icon} {self.name}"
 
 
+class RecurringExpense(models.Model):
+    """Recurring expense template that generates Expense records automatically."""
+
+    FREQUENCY_CHOICES = [
+        ('daily', 'Daily'),
+        ('weekly', 'Weekly'),
+        ('monthly', 'Monthly'),
+        ('quarterly', 'Quarterly'),
+        ('yearly', 'Yearly'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, default=1, related_name='recurring_expenses')
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='recurring_expenses')
+    title = models.CharField(max_length=255, db_index=True)
+    amount = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        validators=[MinValueValidator(0)]
+    )
+    frequency = models.CharField(max_length=10, choices=FREQUENCY_CHOICES)
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    next_due_date = models.DateField(db_index=True)
+    notes = models.TextField(blank=True, default='')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-next_due_date']
+        indexes = [
+            models.Index(fields=['is_active', 'next_due_date']),
+            models.Index(fields=['user', 'is_active']),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self.user_id or not User.objects.filter(id=self.user_id).exists():
+            user = User.objects.first()
+            if not user:
+                user = User.objects.create_user('default_user', 'default@example.com', 'defaultpassword123')
+            self.user = user
+        if not self.next_due_date:
+            self.next_due_date = self.start_date
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.title} ({self.get_frequency_display()}) — ${self.amount}"
+
+
 class Expense(models.Model):
     """Individual expense transaction."""
 
@@ -76,6 +124,10 @@ class Expense(models.Model):
     recurring_type = models.CharField(
         max_length=10, choices=RECURRING_TYPE_CHOICES, blank=True, null=True
     )
+    recurring_expense = models.ForeignKey(
+        RecurringExpense, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='generated_expenses'
+    )
     tags = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -86,6 +138,7 @@ class Expense(models.Model):
             models.Index(fields=['-expense_date', 'category']),
             models.Index(fields=['-expense_date', '-amount']),
             models.Index(fields=['category', '-expense_date']),
+            models.Index(fields=['recurring_expense', 'expense_date']),
         ]
 
     def save(self, *args, **kwargs):

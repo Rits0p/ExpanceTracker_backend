@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Recurring Expense Details{% endblock %}
+{% block page_title %}Recurring Expense{% endblock %}
+{% block page_subtitle %}View and manage recurring expense details{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'recurring_expense/css/recurring.css' %}?v=1.0" />
+{% endblock %}
+
+{% block content %}
+<div class="recurring-page page" id="recurringDetailPage">
+
+  <!-- Breadcrumb -->
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/">Dashboard</a>
+    <span class="sep">/</span>
+    <a href="{% url 'recurring-list' %}">Recurring Expenses</a>
+    <span class="sep">/</span>
+    <span class="current" id="detailBreadcrumb">Loading...</span>
+  </nav>
+
+  <!-- Loading State -->
+  <div class="empty-state fade-in" id="detailLoading">
+    <div class="spinner" style="width:40px;height:40px;border-width:4px;margin-bottom:16px"></div>
+    <p>Loading recurring expense details...</p>
+  </div>
+
+  <!-- Error State -->
+  <div class="empty-state fade-in" id="detailError" style="display:none">
+    <div class="empty-state-icon error">
+      <i class="ph ph-warning"></i>
+    </div>
+    <h3>Recurring expense not found</h3>
+    <p id="detailErrorMessage">This recurring expense may have been deleted or you may not have access.</p>
+    <a href="{% url 'recurring-list' %}" class="btn btn-primary">
+      <i class="ph ph-arrow-left"></i> Back to Recurring Expenses
+    </a>
+  </div>
+
+  <!-- Detail Content (hidden until loaded) -->
+  <div id="detailContent" style="display:none">
+
+    <!-- Action Bar -->
+    <div class="detail-actions fade-in">
+      <div class="detail-actions-left">
+        <a href="{% url 'recurring-list' %}" class="btn btn-secondary">
+          <i class="ph ph-arrow-left"></i> Back
+        </a>
+      </div>
+      <div class="detail-actions-right">
+        <a href="#" id="editRecurringBtn" class="btn btn-primary">
+          <i class="ph ph-pencil"></i> Edit
+        </a>
+        <button class="btn btn-secondary" id="pauseResumeBtn" onclick="togglePauseResume()">Pause</button>
+        <button class="btn btn-danger-ghost" onclick="openDeleteModal()">
+          <i class="ph ph-trash"></i> Delete
+        </button>
+      </div>
+    </div>
+
+    <!-- Info + Stats Grid -->
+    <div class="detail-grid fade-in">
+
+      <!-- Expense Information -->
+      <div class="card detail-card">
+        <div class="card-header">
+          <h3 class="card-title">Expense Information</h3>
+        </div>
+        <div class="detail-fields">
+          <div class="detail-field">
+            <span class="detail-label">Title</span>
+            <span class="detail-value" id="detailTitle">—</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Category</span>
+            <span class="detail-value" id="detailCategory">—</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Amount</span>
+            <span class="detail-value" id="detailAmount">—</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Frequency</span>
+            <span class="detail-value" id="detailFrequency">—</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Next Due Date</span>
+            <span class="detail-value" id="detailNextDue">—</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Start Date</span>
+            <span class="detail-value" id="detailStartDate">—</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">End Date</span>
+            <span class="detail-value" id="detailEndDate">—</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Status</span>
+            <span class="detail-value" id="detailStatus">—</span>
+          </div>
+          <div class="detail-field full-width">
+            <span class="detail-label">Notes</span>
+            <span class="detail-value" id="detailNotes">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistics -->
+      <div class="card detail-card">
+        <div class="card-header">
+          <h3 class="card-title">Statistics</h3>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-value" id="statTotalGenerated">0</div>
+            <div class="stat-label">Total Generated</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="statTotalAmount">$0.00</div>
+            <div class="stat-label">Total Amount Generated</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="statLastGenerated">—</div>
+            <div class="stat-label">Last Generated</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="statUpcomingDue">—</div>
+            <div class="stat-label">Upcoming Due</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Generated Expense History -->
+    <div class="card fade-in" style="margin-top:20px">
+      <div class="card-header">
+        <h3 class="card-title">Generated Expense History</h3>
+        <div class="history-filters">
+          <input type="text" class="form-input" id="historySearch" placeholder="Search history..." style="width:200px" />
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table class="recurring-table" id="historyTable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Amount</th>
+              <th>Category</th>
+              <th>Budget Month</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody">
+            <tr class="loading-row">
+              <td colspan="4">
+                <div class="table-loader"><div class="spinner"></div><span>Loading history...</span></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination-wrapper" id="historyPagination" style="display:none">
+        <div class="pagination-info">
+          Showing <span id="histShowingStart">0</span>–<span id="histShowingEnd">0</span> of <span id="histTotal">0</span>
+        </div>
+        <div class="pagination-controls">
+          <button class="btn btn-sm btn-secondary" id="histPrevBtn" disabled><i class="ph ph-caret-left"></i> Previous</button>
+          <div class="page-numbers" id="histPageNumbers"></div>
+          <button class="btn btn-sm btn-secondary" id="histNextBtn">Next <i class="ph ph-caret-right"></i></button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Modals -->
+{% include 'recurring_expense/partials/modal.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'recurring_expense/js/recurring.js' %}?v=1.0"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    initDetailPage({
+      recurringId: {{ recurring_id }},
+      listUrl: '/api/v1/recurring-expenses/',
+      expenseUrl: '/api/v1/expenses/',
+    });
+  });
+</script>
+{% endblock %}

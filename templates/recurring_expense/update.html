@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Recurring Expense{% endblock %}
+{% block page_title %}Edit Recurring Expense{% endblock %}
+{% block page_subtitle %}Update recurring expense template{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'recurring_expense/css/recurring.css' %}?v=1.0" />
+{% endblock %}
+
+{% block content %}
+<div class="recurring-page page" id="recurringFormPage">
+
+  <!-- Breadcrumb -->
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/">Dashboard</a>
+    <span class="sep">/</span>
+    <a href="{% url 'recurring-list' %}">Recurring Expenses</a>
+    <span class="sep">/</span>
+    <a href="{% url 'recurring-detail' recurring_id %}">Details</a>
+    <span class="sep">/</span>
+    <span class="current">Edit</span>
+  </nav>
+
+  <!-- Loading State -->
+  <div class="empty-state fade-in" id="loadState">
+    <div class="spinner" style="width:40px;height:40px;border-width:4px;margin-bottom:16px"></div>
+    <p>Loading recurring expense data...</p>
+  </div>
+
+  <!-- Error State -->
+  <div class="empty-state fade-in" id="loadError" style="display:none">
+    <div class="empty-state-icon error"><i class="ph ph-warning"></i></div>
+    <h3>Unable to load recurring expense</h3>
+    <p>This recurring expense may have been deleted.</p>
+    <a href="{% url 'recurring-list' %}" class="btn btn-primary">Back to Recurring Expenses</a>
+  </div>
+
+  <!-- Form (hidden until loaded) -->
+  <div class="form-card card fade-in" id="formCard" style="display:none">
+    <div class="card-header">
+      <h3 class="card-title">Edit Recurring Expense</h3>
+    </div>
+
+    <form id="recurringForm" novalidate>
+      {% csrf_token %}
+
+      <div class="form-grid">
+        <!-- Title -->
+        <div class="form-group">
+          <label class="form-label" for="title">Expense Title <span class="required">*</span></label>
+          <input type="text" class="form-input" id="title" name="title" placeholder="e.g. Internet Bill" required />
+          <span class="form-error-text" id="titleError"></span>
+        </div>
+
+        <!-- Category -->
+        <div class="form-group">
+          <label class="form-label" for="category">Category <span class="required">*</span></label>
+          <select class="form-select" id="category" name="category" required>
+            <option value="">Select a category</option>
+            {% for cat in categories %}
+            <option value="{{ cat.id }}">{{ cat.icon|default:'' }} {{ cat.name }}</option>
+            {% endfor %}
+          </select>
+          <span class="form-error-text" id="categoryError"></span>
+        </div>
+
+        <!-- Amount -->
+        <div class="form-group">
+          <label class="form-label" for="amount">Amount <span class="required">*</span></label>
+          <div class="input-prefix">
+            <span class="prefix">$</span>
+            <input type="number" class="form-input" id="amount" name="amount" placeholder="0.00" step="0.01" min="0.01" required />
+          </div>
+          <span class="form-error-text" id="amountError"></span>
+        </div>
+
+        <!-- Frequency -->
+        <div class="form-group">
+          <label class="form-label" for="frequency">Frequency <span class="required">*</span></label>
+          <select class="form-select" id="frequency" name="frequency" required>
+            <option value="">Select frequency</option>
+            {% for val, label in frequencies %}
+            <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+          <span class="form-error-text" id="frequencyError"></span>
+        </div>
+
+        <!-- Start Date -->
+        <div class="form-group">
+          <label class="form-label" for="startDate">Start Date <span class="required">*</span></label>
+          <input type="date" class="form-input" id="startDate" name="startDate" required />
+          <span class="form-error-text" id="startDateError"></span>
+        </div>
+
+        <!-- End Date -->
+        <div class="form-group">
+          <label class="form-label" for="endDate">End Date</label>
+          <input type="date" class="form-input" id="endDate" name="endDate" />
+          <span class="form-error-text" id="endDateError"></span>
+          <span class="form-help-text">Leave empty for no end date</span>
+        </div>
+
+        <!-- Active Toggle -->
+        <div class="form-group">
+          <label class="form-label">Active</label>
+          <div class="toggle active" id="activeToggle" onclick="this.classList.toggle('active')">
+            <div class="toggle-knob"></div>
+          </div>
+          <span class="form-help-text">Automatically generate expenses when due</span>
+        </div>
+
+        <!-- Notes -->
+        <div class="form-group full-width">
+          <label class="form-label" for="notes">Notes</label>
+          <textarea class="form-textarea" id="notes" name="notes" rows="3" placeholder="Optional notes..."></textarea>
+        </div>
+      </div>
+
+      <!-- Form Buttons -->
+      <div class="form-actions">
+        <a href="{% url 'recurring-detail' recurring_id %}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+          <i class="ph ph-check"></i> Update Recurring Expense
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Loading overlay -->
+  <div class="form-loading-overlay" id="formLoading" style="display:none">
+    <div class="spinner" style="width:40px;height:40px;border-width:4px"></div>
+    <p>Saving changes...</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'recurring_expense/js/recurring.js' %}?v=1.0"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    initFormPage({
+      mode: 'update',
+      apiUrl: '/api/v1/recurring-expenses/',
+      recurringId: {{ recurring_id }},
+      listUrl: '{% url "recurring-list" %}',
+      detailUrl: '{% url "recurring-detail" recurring_id %}',
+    });
+  });
+</script>
+{% endblock %}

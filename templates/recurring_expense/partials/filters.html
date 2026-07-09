@@ -1,0 +1,48 @@
+{% comment %}
+Recurring Expense Filters Bar
+Provides search, category, frequency, status, date range, and sort controls.
+{% endcomment %}
+<div class="recurring-filters card fade-in">
+  <div class="filters-row">
+    <div class="filter-group search-group">
+      <i class="ph ph-magnifying-glass search-icon"></i>
+      <input type="text" class="form-input" id="searchInput" placeholder="Search by title or category..." />
+    </div>
+    <div class="filter-group">
+      <select class="form-select" id="categoryFilter">
+        <option value="">All Categories</option>
+        {% for cat in categories %}
+        <option value="{{ cat.id }}">{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="filter-group">
+      <select class="form-select" id="frequencyFilter">
+        <option value="">All Frequencies</option>
+        {% for val, label in frequencies %}
+        <option value="{{ val }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="filter-group">
+      <select class="form-select" id="statusFilter">
+        <option value="">All Status</option>
+        <option value="active">Active</option>
+        <option value="paused">Paused</option>
+        <option value="overdue">Overdue</option>
+        <option value="completed">Completed</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <select class="form-select" id="sortFilter">
+        <option value="-next_due_date">Next Due (Newest)</option>
+        <option value="next_due_date">Next Due (Oldest)</option>
+        <option value="-created_at">Created (Newest)</option>
+        <option value="created_at">Created (Oldest)</option>
+        <option value="-amount">Amount (High)</option>
+        <option value="amount">Amount (Low)</option>
+        <option value="title">Title (A-Z)</option>
+      </select>
+    </div>
+  </div>
+</div>

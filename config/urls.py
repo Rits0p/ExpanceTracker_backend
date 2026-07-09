@@ -1,10 +1,18 @@
 """Root URL configuration for ExpenseIQ Django backend."""
+import os
+import sys
+import time
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 from django.contrib import admin
 from django.urls import path, include
 from django.http import JsonResponse
 from django.conf import settings
 from django.conf.urls.static import static
-import time
 
 _start_time = time.time()
 
@@ -29,13 +37,13 @@ from api.views.auth_views import (
     JWTMeView, JWTChangePasswordView,
 )
 from api.views.general_views import index_view
+from api.views.general_views import index_view
 
 urlpatterns = [
     path('', index_view, name='home'),
     path('expenses/', login_required(TemplateView.as_view(template_name='expenses.html')), name='expenses'),
     path('budget/', login_required(TemplateView.as_view(template_name='budget.html')), name='budget'),
     path('ai-assistant/', login_required(TemplateView.as_view(template_name='ai_assistant.html')), name='ai-assistant'),
-
 
     path('settings/', login_required(TemplateView.as_view(template_name='settings.html')), name='settings'),
     path('profile/', profile_view, name='profile'),

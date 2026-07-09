@@ -7,7 +7,8 @@ Mirrors the Node.js Express router structure:
   /api/v1/budget/*
   /api/v1/reports/*
 """
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 
 from .views import (
     ExpenseListCreateView,
@@ -39,7 +40,13 @@ from .views.analytics_views import (
     AnalyticsCategoryPieChartView,
     AnalyticsBudgetExpenseChartView,
     AnalyticsCategoryView,
+    AnalyticsRecurringView,
 )
+from .views.recurring_expense_views import RecurringExpenseViewSet
+
+# ───── DRF Router for ViewSets ─────
+router = DefaultRouter()
+router.register(r'recurring-expenses', RecurringExpenseViewSet, basename='recurring-expense')
 
 urlpatterns = [
     # ───── Expense Routes ─────
@@ -71,10 +78,16 @@ urlpatterns = [
     path('analytics/kpis', AnalyticsKPIsView.as_view(), name='analytics-kpis'),
     path('analytics/weekly', AnalyticsWeeklyView.as_view(), name='analytics-weekly'),
     path('analytics/monthly', AnalyticsMonthlyView.as_view(), name='analytics-monthly'),
+    path('analytics/recurring', AnalyticsRecurringView.as_view(), name='analytics-recurring'),
     path('analytics/charts/monthly-bar', AnalyticsMonthlyBarChartView.as_view(), name='analytics-monthly-bar'),
     path('analytics/charts/weekly-line', AnalyticsWeeklyLineChartView.as_view(), name='analytics-weekly-line'),
     path('analytics/charts/category-pie', AnalyticsCategoryPieChartView.as_view(), name='analytics-category-pie'),
     path('analytics/charts/budget-expense', AnalyticsBudgetExpenseChartView.as_view(), name='analytics-budget-expense'),
     path('analytics/categories', AnalyticsCategoryView.as_view(), name='analytics-categories'),
+
+    # ───── AI Routes ─────
     path('ai/assistant', AIAssistantView.as_view(), name='ai-assistant'),
+
+    # ───── Recurring Expense Routes (ViewSet via Router) ─────
+    path('', include(router.urls)),
 ]

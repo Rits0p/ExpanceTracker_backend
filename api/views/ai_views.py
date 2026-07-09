@@ -39,7 +39,7 @@ GROQ_API_KEY      = os.environ.get("GROQ_API_KEY", "")          # Never hardcode
 GROQ_MODEL        = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
 GROQ_API_URL      = os.environ.get("GROQ_API_BASE_URL", "https://api.groq.com/openai/v1/chat/completions")
 GROQ_TEMPERATURE  = float(os.environ.get("GROQ_TEMPERATURE", "0.3"))   # Low = consistent JSON
-GROQ_MAX_TOKENS   = int(os.environ.get("GROQ_MAX_TOKENS", "600"))
+GROQ_MAX_TOKENS   = int(os.environ.get("GROQ_MAX_TOKENS", "1024"))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -202,6 +202,29 @@ def _build_user_context(user) -> str:
     except Exception as exc:
         logger.warning(f"Category budget context error: {exc}")
 
+    # ── User categories (for CRUD matching) ───────────────────────────
+    try:
+        all_cats = Category.objects.filter(user=user).order_by("name")
+        if all_cats.exists():
+            cat_list = ",".join(
+                f"{c.name}(icon:{c.icon},color:{c.color},budget:₹{c.monthly_budget:.0f})"
+                for c in all_cats
+            )
+            parts.append(f"[CATEGORIES:{cat_list}]")
+        else:
+            parts.append("[CATEGORIES:none]")
+    except Exception as exc:
+        logger.warning(f"Category list context error: {exc}")
+
+    # ── User theme ────────────────────────────────────────────────────
+    try:
+        from ..models import UserSettings
+        us = UserSettings.objects.filter(user=user).first()
+        if us:
+            parts.append(f"[THEME:{us.theme}]")
+    except Exception as exc:
+        logger.warning(f"Theme context error: {exc}")
+
     return " ".join(parts)
 
 
@@ -257,15 +280,26 @@ def _execute_crud(user, intent: str, data: dict) -> dict:
         # ── EDIT EXPENSE ──────────────────────────────────────────────
         elif intent == "edit_expense":
             search = data.get("search", "").strip()
+            expense_id = data.get("id") or data.get("expense_id")
             fields = data.get("fields", {})
-            if not search:
-                return err("❌ Provide a search keyword to find the expense.")
-            qs = Expense.objects.filter(
-                user=user, title__icontains=search
-            ).order_by("-expense_date")
-            if not qs.exists():
-                return err(f"❌ No expense matching '{search}' found.")
-            e = qs.first()
+
+            e = None
+            # Try ID-based lookup first
+            if expense_id:
+                try:
+                    e = Expense.objects.get(user=user, id=int(expense_id))
+                except (Expense.DoesNotExist, ValueError, TypeError):
+                    pass
+            # Fallback to title search
+            if not e and search:
+                qs = Expense.objects.filter(
+                    user=user, title__icontains=search
+                ).order_by("-expense_date")
+                if qs.exists():
+                    e = qs.first()
+            if not e:
+                return err(f"❌ No expense matching '{search or expense_id}' found.")
+
             # Map snake_case AI keys → serializer camelCase keys
             field_map = {
                 "payment_method": "paymentMethod",
@@ -407,6 +441,36 @@ def _execute_crud(user, intent: str, data: dict) -> dict:
                 )
             return ok("💰 **Your Budgets:**\n" + "\n".join(lines), "none", records)
 
+        # ── GET BUDGET (single month) ─────────────────────────────────
+        elif intent == "get_budget":
+            now   = datetime.now()
+            month = _parse_month(_get_non_none(["month", "month_val"], data)) or now.month
+            year  = int(_get_non_none(["year", "year_val"], data) or now.year)
+            try:
+                b = Budget.objects.get(user=user, month=month, year=year)
+            except Budget.DoesNotExist:
+                label = datetime(year, month, 1).strftime("%B %Y")
+                return ok(f"ℹ️ No budget set for **{label}**. Would you like to create one?", "none")
+            label = datetime(b.year, b.month, 1).strftime("%B %Y")
+            spent = (
+                Expense.objects.filter(user=user, expense_date__month=month, expense_date__year=year)
+                .aggregate(t=Sum("amount"))["t"] or 0
+            )
+            remaining = float(b.total_monthly_budget) - float(spent)
+            pct_used = (float(spent) / float(b.total_monthly_budget) * 100) if b.total_monthly_budget else 0
+            record = {
+                "type": "budget", "month": label,
+                "total": float(b.total_monthly_budget),
+                "weekly": float(b.weekly_budget),
+                "daily":  float(b.daily_budget),
+            }
+            return ok(
+                f"💰 **{label} Budget** — ₹{b.total_monthly_budget:.0f}/month\n"
+                f"Spent: ₹{spent:.0f} ({pct_used:.0f}%) | Remaining: ₹{remaining:.0f}",
+                "none",
+                record,
+            )
+
         # ── ADD CATEGORY ──────────────────────────────────────────────
         elif intent == "add_category":
             name = data.get("name", "").strip()
@@ -531,24 +595,50 @@ Response format:
 Available intents:
   none            — question/answer, no DB change
   add_expense     — data: {{title, amount, category, payment_method, expense_date(ISO), notes, is_recurring?, recurring_type?}}
-  edit_expense    — data: {{search (title keyword), fields: {{title?, amount?, category?, payment_method?, notes?}}}}
+  edit_expense    — data: {{search (title keyword), id?(expense id if known), fields: {{title?, amount?, category?, payment_method?, notes?}}}}
   del_expense     — data: {{search (title keyword)}}
   list_expenses   — data: {{limit?(default 10, max 50), category?, month?, year?}}
-  set_budget      — data: {{total?, weekly?, daily?, yearly?, month?, year?}} — include ONLY changed fields
+  set_budget      — data: {{total?, weekly?, daily?, yearly?, month?, year?, warning_threshold?}} — include ONLY changed fields
+  get_budget      — data: {{month?, year?}} — read-only query for a single month's budget
   del_budget      — data: {{month?, year?}}
   list_budgets    — data: {{}}
   add_category    — data: {{name, monthly_budget?, icon?, color?}}
-  edit_category   — data: {{name, fields: {{monthly_budget?, icon?, color?}}}}
+  edit_category   — data: {{name (existing name), fields: {{name?(new name), monthly_budget?, icon?, color?}}}}
   del_category    — data: {{name}}
   list_categories — data: {{}}
   change_theme    — data: {{theme: "light" | "dark"}}
 
 Rules:
+- ONLY output valid JSON. No markdown fences, no text before or after.
 - message: 1-3 sentences, friendly. Use **bold** for amounts and names.
 - For set_budget: include a short 2-3 line category allocation tip based on user's past spend.
 - For none intent: answer from user data below. Be concise.
 - Dates: always ISO format (2025-06-15T00:00:00).
 - payment_method choices: Cash, UPI, Credit Card, Debit Card, Bank Transfer, Auto Pay, Other
+- For category operations: match category names CASE-INSENSITIVELY against the user's existing categories listed below.
+- For change_theme: use "light" or "dark" only. If user says "dark mode" → {{"theme": "dark"}}. If user says "light mode" → {{"theme": "light"}}.
+- If the user's intent is ambiguous, prefer intent "none" and ask a clarifying question in the message.
+- When user asks "what is my budget" or "show my budget" for a specific month, use get_budget.
+- When user asks to see all budgets, use list_budgets.
+
+Examples:
+User: "Add ₹500 grocery expense today"
+→ {{"intent": "add_expense", "message": "Added **Grocery** expense for **₹500**.", "data": {{"title": "Grocery", "amount": 500, "category": "Food", "payment_method": "Cash", "expense_date": "2025-07-09T00:00:00"}}}}
+
+User: "Set my monthly budget to 20000"
+→ {{"intent": "set_budget", "message": "Updated your monthly budget to **₹20,000**.", "data": {{"total": 20000}}}}
+
+User: "Create a Travel category with ₹5000 budget"
+→ {{"intent": "add_category", "message": "Created category **Travel** with **₹5,000** monthly budget.", "data": {{"name": "Travel", "monthly_budget": 5000}}}}
+
+User: "Switch to dark mode"
+→ {{"intent": "change_theme", "message": "🎨 Switched to **dark** mode.", "data": {{"theme": "dark"}}}}
+
+User: "Delete my Netflix expense"
+→ {{"intent": "del_expense", "message": "🗑️ Deleted **Netflix Subscription**.", "data": {{"search": "Netflix"}}}}
+
+User: "Show my expenses for Food this month"
+→ {{"intent": "list_expenses", "message": "Here are your Food expenses this month.", "data": {{"category": "Food", "month": 7}}}}
 
 USER FINANCIAL DATA:
 {user_context}
@@ -561,7 +651,7 @@ USER FINANCIAL DATA:
 
 CRUD_INTENTS = {
     "add_expense", "edit_expense", "del_expense", "list_expenses",
-    "set_budget",  "del_budget",   "list_budgets",
+    "set_budget",  "get_budget",   "del_budget",   "list_budgets",
     "add_category","edit_category","del_category","list_categories",
     "change_theme",
 }

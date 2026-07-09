@@ -1,0 +1,18 @@
+{% comment %}
+Recurring Expense Pagination Controls
+Shows page numbers, prev/next buttons, and total results.
+{% endcomment %}
+<div class="pagination-wrapper fade-in" id="recurringPagination" style="display:none">
+  <div class="pagination-info">
+    Showing <span id="showingStart">0</span>–<span id="showingEnd">0</span> of <span id="totalResults">0</span> recurring expenses
+  </div>
+  <div class="pagination-controls">
+    <button class="btn btn-sm btn-secondary" id="prevPageBtn" disabled>
+      <i class="ph ph-caret-left"></i> Previous
+    </button>
+    <div class="page-numbers" id="pageNumbers"></div>
+    <button class="btn btn-sm btn-secondary" id="nextPageBtn">
+      Next <i class="ph ph-caret-right"></i>
+    </button>
+  </div>
+</div>

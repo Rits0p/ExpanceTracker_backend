@@ -686,6 +686,13 @@
           <option value="all">All Categories</option>
         </select>
       </div>
+      <div>
+        <select class="form-select" id="recurringFilter" style="width: auto;">
+          <option value="all">All Expenses</option>
+          <option value="recurring">Recurring Only</option>
+          <option value="one-time">One-Time Only</option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -705,6 +712,7 @@
             <th>Category</th>
             <th>Date & Time</th>
             <th>Method</th>
+            <th>Recurring</th>
             <th>Amount</th>
             <th>Actions</th>
           </tr>
@@ -805,6 +813,39 @@
         <span style="font-size:14px">Recurring expense</span>
       </div>
 
+      <input type="hidden" id="fRecurringExpenseId">
+
+      <div id="recurringOptions" style="display:none;margin-top:12px;padding:16px;border:1px solid var(--border-color);border-radius:12px;background:var(--bg-page);">
+        <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:12px;">Recurring Options</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Frequency *</label>
+            <select class="form-select" id="fRecurringFrequency">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly" selected>Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Start Date *</label>
+            <input type="date" class="form-input" id="fRecurringStart">
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">End Date</label>
+            <input type="date" class="form-input" id="fRecurringEnd">
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Leave empty for no end date</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Recurring Notes</label>
+            <input type="text" class="form-input" placeholder="e.g. Monthly subscription" id="fRecurringNotes">
+          </div>
+        </div>
+      </div>
+
       <div style="display: flex; gap: 12px; margin-top: 24px;">
         <button type="submit" class="btn btn-primary" style="flex: 1;">Save Expense</button>
         <button type="button" class="btn btn-secondary" onclick="closeModal('expenseFormModal')">Cancel</button>
@@ -885,6 +926,7 @@
   // App State
   let expenses = [];
   let categories = [];
+  let recurringExpenses = [];
 
   // Budgets
   const budgets = {
@@ -907,6 +949,7 @@
   let selectedDate = null;
   let activeCategoryFilter = 'all';
   let activePaymentFilter = 'all';
+  let activeRecurringFilter = 'all';
   let searchQuery = '';
   let currentPage = 1;
   const perPage = 5;
@@ -1173,6 +1216,13 @@
       // Search Filter
       if (searchQuery && !exp.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
 
+      // Recurring Filter
+      if (activeRecurringFilter !== 'all') {
+        const isRecurring = exp.isRecurring || (exp.recurringExpenseDetail != null);
+        if (activeRecurringFilter === 'recurring' && !isRecurring) return false;
+        if (activeRecurringFilter === 'one-time' && isRecurring) return false;
+      }
+
       return true;
     }).sort((a, b) => new Date(b.expenseDate || b.date) - new Date(a.expenseDate || a.date));
   }
@@ -1190,7 +1240,7 @@
     tbody.innerHTML = '';
 
     if (pageData.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-secondary);">No expenses found</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);">No expenses found</td></tr>`;
     } else {
       pageData.forEach(exp => {
         const cat = categories.find(c => c.name === exp.category);
@@ -1206,16 +1256,46 @@
         else if (lowerCat.includes("heal")) badgeClass = "badge-health";
         else if (lowerCat.includes("shop")) badgeClass = "badge-shopping";
 
+        // Recurring info
+        const isRecurring = exp.isRecurring || (exp.recurringExpenseDetail != null);
+        const recurDetail = exp.recurringExpenseDetail || null;
+        let recurringCell = '<span style="color:var(--text-muted);font-size:12px;">—</span>';
+        let actionsExtra = '';
+        if (recurDetail) {
+          const freqDisplay = recurDetail.frequencyDisplay || recurDetail.frequency || '';
+          const nextDue = recurDetail.nextDueDate ? new Date(recurDetail.nextDueDate + 'T00:00:00').toLocaleDateString() : '';
+          const isActive = recurDetail.isActive !== false;
+          const pauseLabel = isActive ? 'Pause' : 'Resume';
+          const pauseIcon = isActive ? 'ph-pause' : 'ph-play';
+          const statusBadge = isActive ? 'badge-emerald' : 'badge-red';
+          const statusText = isActive ? 'Active' : 'Paused';
+          recurringCell = `<div style="display:flex;flex-direction:column;gap:4px;">
+            <span class="badge badge-cyan" style="font-size:11px;padding:2px 8px;">${freqDisplay}</span>
+            ${nextDue ? `<span style="font-size:11px;color:var(--text-muted);">Due: ${nextDue}</span>` : ''}
+            <span class="badge ${statusBadge}" style="font-size:10px;padding:1px 6px;">${statusText}</span>
+          </div>`;
+          actionsExtra = `<button class="btn btn-sm btn-secondary" onclick="toggleRecurringActive(${recurDetail.id})">${pauseLabel}</button>
+              <button class="btn btn-sm btn-danger-ghost" onclick="deleteRecurringExpense(${recurDetail.id})">Del</button>`;
+        } else if (isRecurring) {
+          const freq = exp.recurringType || exp.recurringType || 'monthly';
+          const freqDisplay = freq.charAt(0).toUpperCase() + freq.slice(1);
+          recurringCell = `<span class="badge badge-cyan" style="font-size:11px;">${freqDisplay}</span>`;
+        }
+
         const row = document.createElement('tr');
         row.innerHTML = `
             <td style="color:var(--text-primary);font-weight:500">${exp.title}</td>
             <td><span class="badge ${badgeClass}"><i class="ph ${cat ? cat.icon : 'ph-package'}"></i> ${exp.category}</span></td>
             <td>${new Date(exp.expenseDate || exp.date).toLocaleString()}</td>
             <td>${methodStr}</td>
+            <td>${recurringCell}</td>
             <td style="color:var(--accent-danger);font-weight:600">-${formatINR(exp.amount)}</td>
             <td>
-              <button class="btn btn-sm btn-secondary" onclick="editExpense(${exp.id})">Edit</button>
-              <button class="btn btn-sm btn-danger-ghost" onclick="deleteExpense(${exp.id})">Delete</button>
+              <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                <button class="btn btn-sm btn-secondary" onclick="editExpense(${exp.id})">Edit</button>
+                <button class="btn btn-sm btn-danger-ghost" onclick="deleteExpense(${exp.id})">Delete</button>
+                ${actionsExtra}
+              </div>
             </td>
           `;
         tbody.appendChild(row);
@@ -1242,6 +1322,23 @@
         else if (lowerCat.includes("heal")) badgeClass = "badge-health";
         else if (lowerCat.includes("shop")) badgeClass = "badge-shopping";
 
+        const isRecurring = exp.isRecurring || (exp.recurringExpenseDetail != null);
+        const recurDetail = exp.recurringExpenseDetail || null;
+        let recurringMobile = '';
+        let actionsExtraMobile = '';
+        if (recurDetail) {
+          const freqDisplay = recurDetail.frequencyDisplay || recurDetail.frequency || '';
+          const isActive = recurDetail.isActive !== false;
+          const pauseLabel = isActive ? 'Pause' : 'Resume';
+          recurringMobile = `<span class="badge badge-cyan" style="font-size:10px;">${freqDisplay}</span>`;
+          actionsExtraMobile = `<button class="btn btn-sm btn-secondary" onclick="toggleRecurringActive(${recurDetail.id})">${pauseLabel}</button>
+              <button class="btn btn-sm btn-danger-ghost" onclick="deleteRecurringExpense(${recurDetail.id})">Del</button>`;
+        } else if (isRecurring) {
+          const freq = exp.recurringType || 'monthly';
+          const freqDisplay = freq.charAt(0).toUpperCase() + freq.slice(1);
+          recurringMobile = `<span class="badge badge-cyan" style="font-size:10px;">${freqDisplay}</span>`;
+        }
+
         const card = document.createElement('div');
         card.className = 'card';
         card.style.padding = '16px';
@@ -1254,10 +1351,12 @@
               <div>
                 <span class="badge ${badgeClass}"><i class="ph ${cat ? cat.icon : 'ph-package'}"></i> ${exp.category}</span>
                 <span style="font-size:12px;color:var(--text-secondary)">${methodStr}</span>
+                ${recurringMobile}
               </div>
-              <div style="display:flex; gap:8px;">
+              <div style="display:flex; gap:8px;flex-wrap:wrap;">
                 <button class="btn btn-sm btn-secondary" onclick="editExpense(${exp.id})">Edit</button>
                 <button class="btn btn-sm btn-danger-ghost" onclick="deleteExpense(${exp.id})">Delete</button>
+                ${actionsExtraMobile}
               </div>
             </div>
           `;
@@ -1420,6 +1519,19 @@
           categories = [...AppData.categories];
         }
       }
+
+      // Fetch recurring expenses for reference
+      try {
+        const recRes = await Auth.apiFetch('/api/v1/recurring-expenses/?limit=200');
+        if (recRes) {
+          const recData = recRes.data?.results || recRes.data || recRes.results || (Array.isArray(recRes) ? recRes : []);
+          if (Array.isArray(recData)) {
+            recurringExpenses = recData;
+          }
+        }
+      } catch (e) {
+        console.error('Failed to fetch recurring expenses', e);
+      }
       // Populate Add/Edit Form Category dropdown
       const fCategory = document.getElementById('fCategory');
       if (fCategory) {
@@ -1477,8 +1589,30 @@
 
   // Toggle
   const recurringToggle = document.getElementById('recurringToggle');
+  const recurringOptions = document.getElementById('recurringOptions');
+
+  function showRecurringOptions() {
+    if (recurringOptions) recurringOptions.style.display = 'block';
+    if (!document.getElementById('fRecurringStart').value) {
+      const today = new Date();
+      const ymd = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+      document.getElementById('fRecurringStart').value = ymd;
+    }
+  }
+
+  function hideRecurringOptions() {
+    if (recurringOptions) recurringOptions.style.display = 'none';
+  }
+
   if (recurringToggle) {
-    recurringToggle.addEventListener('click', function () { this.classList.toggle('active'); });
+    recurringToggle.addEventListener('click', function () {
+      this.classList.toggle('active');
+      if (this.classList.contains('active')) {
+        showRecurringOptions();
+      } else {
+        hideRecurringOptions();
+      }
+    });
   }
 
   form.addEventListener('submit', async function (e) {
@@ -1514,6 +1648,63 @@
     submitBtn.textContent = 'Saving...';
 
     try {
+      // Handle recurring expense creation/update
+      let recurringId = document.getElementById('fRecurringExpenseId').value;
+      const isRecurringActive = recurringToggle && recurringToggle.classList.contains('active');
+
+      if (isRecurringActive) {
+        const freq = document.getElementById('fRecurringFrequency').value;
+        const startDate = document.getElementById('fRecurringStart').value;
+        const endDate = document.getElementById('fRecurringEnd').value;
+        const recNotes = document.getElementById('fRecurringNotes').value;
+
+        if (!startDate) {
+          document.getElementById('fRecurringStart').focus();
+          showToast('Please select a start date for recurring expense', 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalBtnText;
+          return;
+        }
+
+        const recPayload = {
+          title: title.trim(),
+          amount: parseFloat(amount),
+          category: category,
+          frequency: freq,
+          startDate: startDate,
+          notes: recNotes || '',
+        };
+        if (endDate) recPayload.endDate = endDate;
+
+        if (recurringId) {
+          const recRes = await Auth.apiFetch(`/api/v1/recurring-expenses/${recurringId}/`, {
+            method: 'PUT',
+            body: JSON.stringify(recPayload),
+          });
+          if (recRes && recRes.success) {
+            recurringId = recRes.data?.id || recRes.data?._id || recurringId;
+            // Update local state
+            const idx = recurringExpenses.findIndex(r => r.id == recurringId);
+            if (idx >= 0) recurringExpenses[idx] = recRes.data;
+          }
+        } else {
+          const recRes = await Auth.apiFetch('/api/v1/recurring-expenses/', {
+            method: 'POST',
+            body: JSON.stringify(recPayload),
+          });
+          if (recRes && recRes.success) {
+            recurringId = recRes.data?.id || recRes.data?._id;
+            if (recRes.data) recurringExpenses.push(recRes.data);
+          } else {
+            const errMsg = recRes?.message || 'Failed to create recurring expense';
+            showToast(errMsg, 'error');
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalBtnText;
+            return;
+          }
+        }
+      }
+
       const formData = new FormData();
       formData.append('title', title.trim());
       formData.append('amount', parseFloat(amount));
@@ -1521,15 +1712,16 @@
       formData.append('expense_date', new Date(date).toISOString());
       formData.append('paymentMethod', method || 'Cash');
       formData.append('notes', notes || '');
+      formData.append('isRecurring', isRecurringActive);
+      formData.append('tags', JSON.stringify([]));
 
-      if (recurringToggle) {
-        const isRecurring = recurringToggle.classList.contains('active');
-        formData.append('isRecurring', isRecurring);
-        if (isRecurring) {
-          formData.append('recurringType', 'monthly');
+      if (isRecurringActive) {
+        const freq = document.getElementById('fRecurringFrequency').value;
+        formData.append('recurringType', freq);
+        if (recurringId) {
+          formData.append('recurringExpense', recurringId);
         }
       }
-      formData.append('tags', JSON.stringify([]));
 
       if (fileInput && fileInput.files && fileInput.files[0]) {
         formData.append('receiptImage', fileInput.files[0]);
@@ -1556,6 +1748,7 @@
           document.getElementById('receiptPreview').style.display = 'none';
         }
         if (recurringToggle) recurringToggle.classList.remove('active');
+        hideRecurringOptions();
 
         // Refresh
         const res = await Auth.apiFetch('/api/v1/expenses/?limit=1000');
@@ -1603,10 +1796,23 @@
     document.getElementById('fNotes').value = exp.notes || '';
 
     if (recurringToggle) {
-      if (exp.isRecurring) {
+      const hasRecurDetail = exp.recurringExpenseDetail != null;
+      if (hasRecurDetail || exp.isRecurring) {
         recurringToggle.classList.add('active');
+        showRecurringOptions();
+        const rd = exp.recurringExpenseDetail;
+        if (rd) {
+          document.getElementById('fRecurringExpenseId').value = rd.id || '';
+          document.getElementById('fRecurringFrequency').value = rd.frequency || 'monthly';
+          document.getElementById('fRecurringStart').value = rd.startDate || '';
+          document.getElementById('fRecurringEnd').value = rd.endDate || '';
+          document.getElementById('fRecurringNotes').value = rd.notes || '';
+        } else {
+          document.getElementById('fRecurringFrequency').value = exp.recurringType || 'monthly';
+        }
       } else {
         recurringToggle.classList.remove('active');
+        hideRecurringOptions();
       }
     }
 
@@ -1644,6 +1850,63 @@
     }
   }
 
+  // ── Recurring Expense Actions ──
+  async function toggleRecurringActive(id) {
+    try {
+      const res = await Auth.apiFetch(`/api/v1/recurring-expenses/${id}/toggle_active/`, {
+        method: 'POST',
+      });
+      if (res && res.success) {
+        const statusText = res.data?.isActive ? 'resumed' : 'paused';
+        showToast(`Recurring expense ${statusText}!`, 'success');
+        // Update local state
+        const idx = recurringExpenses.findIndex(r => r.id == id);
+        if (idx >= 0 && res.data) recurringExpenses[idx] = res.data;
+        // Refresh expenses to get updated recurringExpenseDetail
+        const expRes = await Auth.apiFetch('/api/v1/expenses/?limit=1000');
+        if (expRes && expRes.success) {
+          AppData.expenses = expRes.data.results || expRes.data;
+          expenses = [...AppData.expenses];
+          updateBudgetsAndKPIs();
+          renderCalendar();
+          renderExpenses();
+          renderCategoryBudgets();
+        }
+      } else {
+        showToast('Failed to toggle recurring expense', 'error');
+      }
+    } catch (e) {
+      showToast('Error toggling recurring expense', 'error');
+    }
+  }
+
+  async function deleteRecurringExpense(id) {
+    if (!confirm('Delete this recurring expense template? This will not remove generated expenses.')) return;
+    try {
+      const res = await Auth.apiFetch(`/api/v1/recurring-expenses/${id}/`, {
+        method: 'DELETE',
+      });
+      if (res && res.success) {
+        showToast('Recurring expense deleted!', 'warning');
+        recurringExpenses = recurringExpenses.filter(r => r.id != id);
+        // Refresh expenses
+        const expRes = await Auth.apiFetch('/api/v1/expenses/?limit=1000');
+        if (expRes && expRes.success) {
+          AppData.expenses = expRes.data.results || expRes.data;
+          expenses = [...AppData.expenses];
+          updateBudgetsAndKPIs();
+          renderCalendar();
+          renderExpenses();
+          renderCategoryBudgets();
+        }
+      } else {
+        showToast('Failed to delete recurring expense', 'error');
+      }
+    } catch (e) {
+      showToast('Error deleting recurring expense', 'error');
+    }
+  }
+
   // Event Listeners
   document.getElementById('prevMonth').addEventListener('click', () => {
     currentCalDate.setMonth(currentCalDate.getMonth() - 1);
@@ -1678,13 +1941,23 @@
     renderExpenses();
   });
 
+  document.getElementById('recurringFilter').addEventListener('change', (e) => {
+    activeRecurringFilter = e.target.value;
+    currentPage = 1;
+    renderExpenses();
+  });
+
   // Reset Modal on Open for Add
   window.openModal = function (id) {
     if (id === 'expenseFormModal' && !document.getElementById('fId').value) {
       document.getElementById('modalTitle').textContent = 'Add Expense';
       form.reset();
       document.getElementById('fDate').value = setLocalDatetime();
-      if (recurringToggle) recurringToggle.classList.remove('active');
+      if (recurringToggle) {
+        recurringToggle.classList.remove('active');
+        hideRecurringOptions();
+      }
+      document.getElementById('fRecurringExpenseId').value = '';
       if (document.getElementById('receiptPreview')) {
         document.getElementById('receiptPreview').style.display = 'none';
       }

@@ -2,7 +2,7 @@
 Serializers for ExpenseIQ API — matching the Node.js request/response format.
 """
 from rest_framework import serializers
-from .models import Expense, Category, Budget, Report, Chat, Message
+from .models import Expense, Category, Budget, Report, Chat, Message, RecurringExpense
 
 
 # ───── Category Serializer ─────
@@ -23,6 +23,50 @@ class CategorySerializer(serializers.ModelSerializer):
         return ret
 
 
+# ───── Recurring Expense Serializer ─────
+class RecurringExpenseSerializer(serializers.ModelSerializer):
+    categoryDetails = CategorySerializer(source='category', read_only=True)
+    frequencyDisplay = serializers.SerializerMethodField()
+    startDate = serializers.DateField(source='start_date')
+    endDate = serializers.DateField(source='end_date', required=False, allow_null=True)
+    nextDueDate = serializers.DateField(source='next_due_date', read_only=True)
+    isActive = serializers.BooleanField(source='is_active', required=False)
+    createdAt = serializers.DateTimeField(source='created_at', read_only=True)
+    updatedAt = serializers.DateTimeField(source='updated_at', read_only=True)
+
+    class Meta:
+        model = RecurringExpense
+        fields = [
+            'id', 'title', 'amount', 'category', 'categoryDetails',
+            'frequency', 'frequencyDisplay', 'startDate', 'endDate',
+            'nextDueDate', 'notes', 'isActive', 'createdAt', 'updatedAt',
+        ]
+        read_only_fields = ['id', 'createdAt', 'updatedAt', 'nextDueDate']
+
+    def get_frequencyDisplay(self, obj):
+        return obj.get_frequency_display()
+
+    def validate_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('Amount must be greater than 0.')
+        return value
+
+    def validate(self, data):
+        request = self.context.get('request')
+        if data.get('end_date') and data.get('start_date') and data['end_date'] <= data['start_date']:
+            raise serializers.ValidationError({'endDate': 'End date must be after start date.'})
+        if request and data.get('category'):
+            if data['category'].user != request.user:
+                raise serializers.ValidationError({'category': 'Category does not belong to this user.'})
+        return data
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['amount'] = float(ret.get('amount', 0) or 0)
+        ret['_id'] = str(ret['id'])
+        return ret
+
+
 # ───── Expense Serializer ─────
 class ExpenseSerializer(serializers.ModelSerializer):
     paymentMethod = serializers.CharField(source='payment_method', required=False)
@@ -30,6 +74,13 @@ class ExpenseSerializer(serializers.ModelSerializer):
     expenseDate = serializers.DateTimeField(source='expense_date')
     isRecurring = serializers.BooleanField(source='is_recurring', required=False)
     recurringType = serializers.CharField(source='recurring_type', required=False, allow_null=True)
+    recurringExpense = serializers.PrimaryKeyRelatedField(
+        source='recurring_expense', allow_null=True, required=False,
+        queryset=RecurringExpense.objects.all(),
+    )
+    recurringExpenseDetail = RecurringExpenseSerializer(
+        source='recurring_expense', read_only=True, allow_null=True
+    )
     createdAt = serializers.DateTimeField(source='created_at', read_only=True)
     updatedAt = serializers.DateTimeField(source='updated_at', read_only=True)
 
@@ -38,7 +89,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'amount', 'category', 'paymentMethod',
             'notes', 'receiptImage', 'expenseDate',
-            'isRecurring', 'recurringType', 'tags',
+            'isRecurring', 'recurringType', 'recurringExpense', 'recurringExpenseDetail', 'tags',
             'createdAt', 'updatedAt',
         ]
 

@@ -1,0 +1,27 @@
+{% comment %}
+Recurring Expense Table with sticky header and action buttons.
+Data is rendered client-side by recurring.js
+{% endcomment %}
+<div class="table-wrapper fade-in">
+  <table class="recurring-table" id="recurringTable">
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Expense Name</th>
+        <th>Amount</th>
+        <th>Frequency</th>
+        <th>Next Due Date</th>
+        <th>Status</th>
+        <th>Created</th>
+        <th class="actions-col">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="recurringTableBody">
+      <tr class="loading-row">
+        <td colspan="8">
+          <div class="table-loader"><div class="spinner"></div><span>Loading recurring expenses...</span></div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

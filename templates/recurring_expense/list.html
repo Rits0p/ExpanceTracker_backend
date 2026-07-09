@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Recurring Expenses{% endblock %}
+{% block page_title %}Recurring Expenses{% endblock %}
+{% block page_subtitle %}Manage your automated expense templates{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'recurring_expense/css/recurring.css' %}?v=1.0" />
+{% endblock %}
+
+{% block content %}
+<div class="recurring-page page" id="recurringPage">
+
+  <!-- Breadcrumb -->
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/">Dashboard</a>
+    <span class="sep">/</span>
+    <span class="current">Recurring Expenses</span>
+  </nav>
+
+  <!-- KPI Dashboard Cards -->
+  {% include 'recurring_expense/partials/cards.html' %}
+
+  <!-- Toolbar -->
+  <div class="toolbar fade-in">
+    <div class="toolbar-left">
+      <a href="{% url 'recurring-create' %}" class="btn btn-primary">
+        <i class="ph ph-plus"></i> Add Recurring Expense
+      </a>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  {% include 'recurring_expense/partials/filters.html' %}
+
+  <!-- Empty State -->
+  <div class="empty-state fade-in" id="emptyState" style="display:none">
+    <div class="empty-state-icon">
+      <i class="ph ph-arrows-counter-clockwise"></i>
+    </div>
+    <h3>No recurring expenses found</h3>
+    <p>Create your first recurring expense to automate monthly payments.</p>
+    <a href="{% url 'recurring-create' %}" class="btn btn-primary">
+      <i class="ph ph-plus"></i> Create Recurring Expense
+    </a>
+  </div>
+
+  <!-- Error State -->
+  <div class="empty-state fade-in" id="errorState" style="display:none">
+    <div class="empty-state-icon error">
+      <i class="ph ph-warning"></i>
+    </div>
+    <h3>Something went wrong</h3>
+    <p id="errorMessage">Unable to load recurring expenses.</p>
+    <button class="btn btn-primary" onclick="loadRecurringExpenses()">
+      <i class="ph ph-arrow-clockwise"></i> Retry
+    </button>
+    <a href="/" class="btn btn-secondary" style="margin-left:8px">Go Home</a>
+  </div>
+
+  <!-- Table -->
+  {% include 'recurring_expense/partials/table.html' %}
+
+  <!-- Pagination -->
+  {% include 'recurring_expense/partials/pagination.html' %}
+
+</div>
+
+<!-- Confirmation Modals -->
+{% include 'recurring_expense/partials/modal.html' %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'recurring_expense/js/recurring.js' %}?v=1.0"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    initRecurringPage({
+      listUrl: '/api/v1/recurring-expenses/',
+      analyticsUrl: '/api/v1/analytics/recurring',
+    });
+  });
+</script>
+{% endblock %}

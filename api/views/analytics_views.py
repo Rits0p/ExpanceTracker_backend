@@ -335,6 +335,15 @@ class AnalyticsBudgetExpenseChartView(APIView):
         return ApiResponse.success(data)
 
 
+class AnalyticsRecurringView(APIView):
+    """GET /api/v1/analytics/recurring — recurring expense dashboard stats"""
+
+    def get(self, request):
+        from ..services import get_recurring_dashboard_stats
+        data = get_recurring_dashboard_stats(request.user)
+        return ApiResponse.success(data)
+
+
 class AnalyticsCategoryView(APIView):
     """GET /api/v1/analytics/categories — category analytics with budget usage"""
 

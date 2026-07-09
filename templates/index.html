@@ -248,6 +248,22 @@
             </table>
           </div>
         </div>
+
+        <!-- Recurring Expense Widget -->
+        <div class="recurring-widget fade-in">
+          <div class="recurring-widget-header">
+            <div class="recurring-widget-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="display:inline;vertical-align:middle;margin-right:6px;">
+                <path d="M12 8v4l3 3m6-4a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              Upcoming Recurring
+            </div>
+            <a href="/expenses/" class="btn btn-sm btn-secondary">Manage</a>
+          </div>
+          <div id="recurringWidgetList">
+            <div class="recurring-empty">Loading...</div>
+          </div>
+        </div>
       </div>
 
       <!-- Quick Add FAB -->
@@ -864,7 +880,46 @@
           }
         });
 
-      // Listen to AI budget/expense changes and refresh the dashboard data
+        // Render Recurring Widget
+        async function renderRecurringWidget() {
+          const listEl = document.getElementById('recurringWidgetList');
+          if (!listEl) return;
+          try {
+            const recRes = await Auth.apiFetch('/api/v1/recurring-expenses/?limit=50');
+            let recData = [];
+            if (recRes && recRes.success) {
+              recData = recRes.data?.results || recRes.data || recRes.results || [];
+            }
+            if (!Array.isArray(recData) || recData.length === 0) {
+              listEl.innerHTML = '<div class="recurring-empty">No recurring expenses set up</div>';
+              return;
+            }
+            // Sort by nextDueDate ascending, only show active
+            const active = recData.filter(r => r.isActive !== false).sort((a, b) => new Date(a.nextDueDate) - new Date(b.nextDueDate));
+            if (active.length === 0) {
+              listEl.innerHTML = '<div class="recurring-empty">No active recurring expenses</div>';
+              return;
+            }
+            listEl.innerHTML = active.slice(0, 5).map(r => `
+              <div class="recurring-widget-item">
+                <div class="recurring-item-info">
+                  <div class="recurring-item-title">${r.title}</div>
+                  <div class="recurring-item-meta">
+                    <span class="badge badge-cyan" style="font-size:10px;padding:1px 6px;">${r.frequencyDisplay || r.frequency}</span>
+                    <span>Due: ${r.nextDueDate ? new Date(r.nextDueDate + 'T00:00:00').toLocaleDateString() : 'N/A'}</span>
+                  </div>
+                </div>
+                <div class="recurring-item-amount">${Settings.formatCurrency(r.amount)}</div>
+              </div>
+            `).join('');
+          } catch (e) {
+            console.error('Failed to load recurring widget', e);
+            if (listEl) listEl.innerHTML = '<div class="recurring-empty">Could not load recurring data</div>';
+          }
+        }
+        renderRecurringWidget();
+
+        // Listen to AI budget/expense changes and refresh the dashboard data
       window.addEventListener('ai:finance:changed', (e) => {
         initDashboard();
       });

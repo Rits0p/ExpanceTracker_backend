@@ -1,0 +1,67 @@
+{% comment %}
+Reusable Confirmation Modals for Recurring Expenses
+Includes: delete, pause, resume confirmations
+{% endcomment %}
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Delete Recurring Expense</h3>
+      <button class="modal-close" onclick="closeModal('deleteModal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-icon-wrap danger">
+        <i class="ph ph-trash"></i>
+      </div>
+      <p class="modal-text">Are you sure you want to delete <strong id="deleteItemName">this recurring expense</strong>?</p>
+      <p class="modal-note">Previously generated expenses will remain unchanged.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('deleteModal')">Cancel</button>
+      <button class="btn btn-danger-ghost" id="confirmDeleteBtn" data-id="">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pause Confirmation Modal -->
+<div class="modal-overlay" id="pauseModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Pause Recurring Expense</h3>
+      <button class="modal-close" onclick="closeModal('pauseModal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-icon-wrap warning">
+        <i class="ph ph-pause-circle"></i>
+      </div>
+      <p class="modal-text">Pause <strong id="pauseItemName">this recurring expense</strong>?</p>
+      <p class="modal-note">Future expenses will not be generated until resumed.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('pauseModal')">Cancel</button>
+      <button class="btn btn-warning" id="confirmPauseBtn" data-id="">Pause</button>
+    </div>
+  </div>
+</div>
+
+<!-- Resume Confirmation Modal -->
+<div class="modal-overlay" id="resumeModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Resume Recurring Expense</h3>
+      <button class="modal-close" onclick="closeModal('resumeModal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-icon-wrap success">
+        <i class="ph ph-play-circle"></i>
+      </div>
+      <p class="modal-text">Resume <strong id="resumeItemName">this recurring expense</strong>?</p>
+      <p class="modal-note">Automatic expense generation will continue.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('resumeModal')">Cancel</button>
+      <button class="btn btn-success" id="confirmResumeBtn" data-id="">Resume</button>
+    </div>
+  </div>
+</div>

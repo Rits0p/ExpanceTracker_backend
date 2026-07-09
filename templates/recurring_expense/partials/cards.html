@@ -1,0 +1,38 @@
+{% comment %}
+Recurring Expense KPI Dashboard Cards
+Displays: Total Recurring, Monthly Cost, Upcoming, Overdue
+{% endcomment %}
+<div class="kpi-grid stagger-fade">
+  <div class="kpi-card" id="kpi-total">
+    <div class="kpi-header">
+      <span class="kpi-label">Total Recurring</span>
+      <div class="kpi-icon blue"><i class="ph ph-arrows-counter-clockwise"></i></div>
+    </div>
+    <div class="kpi-value" id="totalRecurring">—</div>
+    <div class="kpi-label-sm">Active recurring expenses</div>
+  </div>
+  <div class="kpi-card" id="kpi-monthly">
+    <div class="kpi-header">
+      <span class="kpi-label">Monthly Cost</span>
+      <div class="kpi-icon orange"><i class="ph ph-currency-circle-dollar"></i></div>
+    </div>
+    <div class="kpi-value" id="monthlyRecurringCost">—</div>
+    <div class="kpi-label-sm">Estimated monthly spend</div>
+  </div>
+  <div class="kpi-card" id="kpi-upcoming">
+    <div class="kpi-header">
+      <span class="kpi-label">Upcoming</span>
+      <div class="kpi-icon green"><i class="ph ph-calendar-plus"></i></div>
+    </div>
+    <div class="kpi-value" id="upcomingCount">—</div>
+    <div class="kpi-label-sm">Payments due within 30 days</div>
+  </div>
+  <div class="kpi-card" id="kpi-overdue">
+    <div class="kpi-header">
+      <span class="kpi-label">Overdue</span>
+      <div class="kpi-icon red"><i class="ph ph-warning-circle"></i></div>
+    </div>
+    <div class="kpi-value" id="overdueCount">—</div>
+    <div class="kpi-label-sm">Payments past due date</div>
+  </div>
+</div>

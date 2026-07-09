@@ -211,6 +211,15 @@ function hideWelcome() {
   }
 }
 
+function showWelcome() {
+  if (welcome) {
+    welcome.style.display = '';
+    welcome.style.opacity = '0';
+    welcome.style.transition = 'opacity 0.3s';
+    setTimeout(() => { welcome.style.opacity = '1'; }, 10);
+  }
+}
+
 function appendUserMessage(text) {
   const now = formatTime(new Date());
   const el = document.createElement('div');
@@ -239,6 +248,7 @@ function appendAiMessage(text, crudType = 'none', crudRecord = null) {
     created: { label: '✅ Created', color: '#10b981' },
     updated: { label: '✏️ Updated', color: '#3b82f6' },
     deleted: { label: '🗑️ Deleted', color: '#ef4444' },
+    change_theme: { label: '🎨 Theme Changed', color: '#8b5cf6' },
   };
   const badge = crudBadges[crudType];
   const badgeHtml = badge
@@ -275,7 +285,7 @@ function appendAiMessage(text, crudType = 'none', crudRecord = null) {
         </div>`;
 
       // ── EXPENSE card ─────────────────────────────────────────────────
-    } else if (crudRecord.title) {
+    } else if (crudRecord.title && !crudRecord.type) {
       const amt = parseFloat(crudRecord.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
       const date = crudRecord.expense_date ? new Date(crudRecord.expense_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
       const catColors = { Food: '#f97316', Transport: '#3b82f6', Shopping: '#8b5cf6', Entertainment: '#ec4899', Utilities: '#14b8a6', Health: '#ef4444', Education: '#f59e0b', Other: '#6b7280' };
@@ -291,6 +301,28 @@ function appendAiMessage(text, crudType = 'none', crudRecord = null) {
         </div>
         <div style="margin-top:8px;">
           <a href="/expenses" style="font-size:12px;color:#10b981;font-weight:600;text-decoration:none;">View all expenses →</a>
+        </div>`;
+
+    // ── CATEGORY card ────────────────────────────────────────────────
+    } else if (crudRecord.type === 'category' || (crudRecord.name && crudRecord.color)) {
+      const catColor = crudRecord.color || '#10b981';
+      const catBudget = parseFloat(crudRecord.monthlyBudget || crudRecord.monthly_budget || 0);
+      const catIcon = crudRecord.icon || 'ph-package';
+      recordHtml = `
+        <div style="margin-top:10px;background:var(--glass-bg,rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;">
+          <div style="width:40px;height:40px;border-radius:10px;background:${catColor}22;border:1px solid ${catColor}44;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="${escapeHtml(catIcon)}" style="font-size:20px;color:${catColor};"></i>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:14px;">${escapeHtml(crudRecord.name)}</div>
+            <div style="font-size:12px;opacity:.6;margin-top:2px;">
+              ${catBudget > 0 ? `Budget: ₹${catBudget.toLocaleString('en-IN')}/month` : 'No budget set'}
+            </div>
+          </div>
+          <div style="width:14px;height:14px;border-radius:50%;background:${catColor};flex-shrink:0;border:2px solid rgba(255,255,255,.2);"></div>
+        </div>
+        <div style="margin-top:8px;">
+          <a href="/expenses" style="font-size:12px;color:#10b981;font-weight:600;text-decoration:none;">View categories →</a>
         </div>`;
     }
   }

@@ -1887,6 +1887,117 @@ tr:hover td {
   opacity: 0.8;
 }
 
+/* ===== RECURRING EXPENSE ===== */
+.recurring-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--kpi-cyan-bg);
+  color: var(--kpi-cyan);
+}
+.recurring-badge.active {
+  background: var(--kpi-emerald-bg);
+  color: var(--accent-success);
+}
+.recurring-badge.paused {
+  background: var(--kpi-red-bg);
+  color: var(--accent-danger);
+}
+.recurring-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.recurring-due {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.recurring-actions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.recurring-section {
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-page);
+}
+.recurring-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.recurring-section-title svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ===== DASHBOARD RECURRING WIDGET ===== */
+.recurring-widget {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-card);
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+}
+.recurring-widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.recurring-widget-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+.recurring-widget-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+.recurring-widget-item:last-child {
+  border-bottom: none;
+}
+.recurring-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.recurring-item-title {
+  font-size: 14px;
+  font-weight: 500;
+}
+.recurring-item-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.recurring-item-amount {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-danger);
+}
+.recurring-empty {
+  text-align: center;
+  padding: 24px 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
 /* ===== RESPONSIVE MEDIA QUERIES ===== */
 @media(max-width:1024px) {
   .sidebar {
