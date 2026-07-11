@@ -675,10 +675,17 @@
       <div>
         <select class="form-select" id="paymentMethodFilter" style="width: auto;">
           <option value="all">All Methods</option>
+          <option value="Cash">💵 Cash</option>
           <option value="Credit Card">💳 Credit Card</option>
           <option value="Debit Card">💳 Debit Card</option>
-          <option value="Cash">💵 Cash</option>
           <option value="Bank Transfer">🏦 Bank Transfer</option>
+          <option value="UPI">📱 UPI</option>
+          <option value="Digital Wallet">👛 Digital Wallet</option>
+          <option value="Net Banking">💻 Net Banking</option>
+          <option value="Cheque">📄 Cheque</option>
+          <option value="EMI">🔄 EMI</option>
+          <option value="Gift Card">🎁 Gift Card</option>
+          <option value="Other">❓ Other</option>
         </select>
       </div>
       <div>
@@ -769,11 +776,20 @@
         <div class="form-group">
           <label class="form-label">Payment Method</label>
           <select class="form-select" id="fMethod">
+            <option value="Cash" selected>💵 Cash</option>
             <option value="Credit Card">💳 Credit Card</option>
             <option value="Debit Card">💳 Debit Card</option>
-            <option value="Cash">💵 Cash</option>
             <option value="Bank Transfer">🏦 Bank Transfer</option>
+            <option value="UPI">📱 UPI</option>
+            <option value="Digital Wallet">👛 Digital Wallet</option>
+            <option value="Net Banking">💻 Net Banking</option>
+            <option value="Cheque">📄 Cheque</option>
+            <option value="EMI">🔄 EMI</option>
+            <option value="Gift Card">🎁 Gift Card</option>
+            <option value="Other">❓ Other</option>
           </select>
+          <input type="text" class="form-input" id="fOtherMethod" placeholder="Please specify"
+            style="display: none; margin-top: 8px;">
         </div>
       </div>
 
@@ -815,8 +831,10 @@
 
       <input type="hidden" id="fRecurringExpenseId">
 
-      <div id="recurringOptions" style="display:none;margin-top:12px;padding:16px;border:1px solid var(--border-color);border-radius:12px;background:var(--bg-page);">
-        <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:12px;">Recurring Options</div>
+      <div id="recurringOptions"
+        style="display:none;margin-top:12px;padding:16px;border:1px solid var(--border-color);border-radius:12px;background:var(--bg-page);">
+        <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:12px;">Recurring Options
+        </div>
         <div class="form-grid">
           <div class="form-group">
             <label class="form-label">Frequency *</label>
@@ -1566,6 +1584,21 @@
     return (new Date(Date.now() - tzOffset)).toISOString().slice(0, 16);
   }
 
+  const fMethodSelect = document.getElementById('fMethod');
+  const fOtherMethodInput = document.getElementById('fOtherMethod');
+  if (fMethodSelect && fOtherMethodInput) {
+    fMethodSelect.addEventListener('change', (e) => {
+      if (e.target.value === 'Other') {
+        fOtherMethodInput.style.display = 'block';
+        fOtherMethodInput.required = true;
+      } else {
+        fOtherMethodInput.style.display = 'none';
+        fOtherMethodInput.required = false;
+        fOtherMethodInput.value = '';
+      }
+    });
+  }
+
   // Upload area events
   const uploadArea = document.getElementById('uploadArea');
   const fileInput = document.getElementById('fReceipt');
@@ -1595,7 +1628,7 @@
     if (recurringOptions) recurringOptions.style.display = 'block';
     if (!document.getElementById('fRecurringStart').value) {
       const today = new Date();
-      const ymd = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+      const ymd = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
       document.getElementById('fRecurringStart').value = ymd;
     }
   }
@@ -1623,7 +1656,11 @@
     const amount = document.getElementById('fAmount').value;
     const category = document.getElementById('fCategory').value;
     const date = document.getElementById('fDate').value;
-    const method = document.getElementById('fMethod').value;
+    let method = document.getElementById('fMethod').value;
+    if (method === 'Other') {
+      const otherVal = document.getElementById('fOtherMethod').value.trim();
+      if (otherVal) method = otherVal;
+    }
     const notes = document.getElementById('fNotes').value;
 
     // Validation
