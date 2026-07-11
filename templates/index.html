@@ -268,8 +268,14 @@
           {% for e in recent_expenses %}
           <tr>
             <td style="color:var(--text-primary);font-weight:500">{{ e.title }}</td>
-            <td><span class="badge badge-cyan">{% if e.category_icon %}<i class="ph {{ e.category_icon }}"></i> {% endif
-                %}{{ e.category }}</span></td>
+            <td>
+              <span class="badge badge-cyan">
+                {% if e.category_icon %}
+                  <i class="ph {{ e.category_icon }}"></i>
+                {% endif %}
+                {{ e.category }}
+              </span>
+            </td>
             <td>{{ e.expense_date|date:"Y-m-d" }}</td>
             <td>{{ e.payment_method }}</td>
             <td style="color:var(--accent-danger);font-weight:600">-{{ e.amount }}</td>

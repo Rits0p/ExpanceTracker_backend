@@ -1,8 +1,9 @@
 import sys
+from datetime import date
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth.models import User
-from .models import Category, UserSettings
+from .models import Budget, Category, UserSettings
 
 @receiver(post_save, sender=User)
 def create_default_categories(sender, instance, created, **kwargs):
@@ -24,4 +25,19 @@ def create_default_categories(sender, instance, created, **kwargs):
                     'color': cat['color'],
                 }
             )
+
+        # Create default budget for current month with all values at 0
+        today = date.today()
+        Budget.objects.get_or_create(
+            user=instance,
+            month=today.month,
+            year=today.year,
+            defaults={
+                'total_monthly_budget': 0,
+                'daily_budget': 0,
+                'weekly_budget': 0,
+                'yearly_budget': 0,
+                'warning_threshold': 80,
+            }
+        )
 

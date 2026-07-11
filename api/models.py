@@ -162,7 +162,7 @@ class Budget(models.Model):
     )
     year = models.IntegerField()
     total_monthly_budget = models.DecimalField(
-        max_digits=12, decimal_places=2,
+        max_digits=12, decimal_places=2, default=0,
         validators=[MinValueValidator(0)]
     )
     daily_budget = models.DecimalField(
