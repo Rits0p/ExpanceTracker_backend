@@ -4,73 +4,6 @@
 {% block page_title %}Budget{% endblock %}
 {% block page_subtitle %}Plan and monitor your spending limits{% endblock %}
 {% block content %}
-<style>
-  /* Global Budget Modal Styles */
-  .budget-modal-period {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 14px 16px;
-    border-radius: 12px;
-    border: 1.5px solid var(--border-color);
-    margin-bottom: 12px;
-    transition: border-color 0.2s;
-  }
-
-  .budget-modal-period:focus-within {
-    border-color: var(--accent-primary);
-  }
-
-  .bmp-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    flex-shrink: 0;
-  }
-
-  .bmp-info {
-    flex: 1;
-  }
-
-  .bmp-label {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 2px;
-  }
-
-  .bmp-hint {
-    font-size: 11px;
-    color: var(--text-muted);
-  }
-
-  .bmp-input {
-    width: 110px;
-    text-align: right;
-    background: var(--bg-page);
-    border: 1.5px solid var(--border-color);
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text-primary);
-    transition: border-color 0.2s;
-  }
-
-  .bmp-input:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-  }
-
-  .bmp-input::placeholder {
-    font-weight: 400;
-    color: var(--text-muted);
-  }
-</style>
 <div class="page fade-in">
   <!-- Top KPIs / Monthly Budget / Progress -->
   <div class="kpi-grid">
@@ -478,6 +411,9 @@
     });
     if (res && res.success) {
       showToast("Category deleted successfully!", "success");
+      window.dispatchEvent(new CustomEvent('ai:finance:changed', {
+        detail: { action: 'category_changed', record: { id: categoryToDelete } }
+      }));
       fetchBudgetData();
     } else {
       showToast("Failed to delete category", "error");
@@ -498,6 +434,9 @@
 
     if (res && res.success) {
       showToast('Category added successfully!', 'success');
+      window.dispatchEvent(new CustomEvent('ai:finance:changed', {
+        detail: { action: 'category_changed', record: res.data || {} }
+      }));
       document.getElementById('addCategoryForm').reset();
       fetchBudgetData();
     } else {
@@ -603,6 +542,9 @@
 
       if (catRes && catRes.success) {
         showToast("Category budget updated successfully!", "success");
+        window.dispatchEvent(new CustomEvent('ai:finance:changed', {
+          detail: { action: 'category_changed', record: catRes.data || {} }
+        }));
         closeModal("budgetModal");
         fetchBudgetData();
       } else {
@@ -639,6 +581,9 @@
 
     if (res && res.success) {
       showToast("Global budgets updated successfully!", "success");
+      window.dispatchEvent(new CustomEvent('ai:finance:changed', {
+        detail: { action: 'budget_changed', record: res.data || {} }
+      }));
       closeModal("globalBudgetModal");
       fetchBudgetData();
     } else {

@@ -11,13 +11,6 @@
   <link rel="stylesheet" href="{% static 'css/style.css' %}" />
   <!-- Phosphor Icons -->
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
-  <style>
-    @media (max-width: 1024px) {
-      #menuBtn {
-        display: flex !important;
-      }
-    }
-  </style>
   {% block extra_head %}{% endblock %}
 </head>
 
@@ -27,7 +20,7 @@
   <div class="main-content" id="mainContent">
     <header class="topbar">
       <div class="topbar-left">
-        <button class="topbar-btn" id="menuBtn" style="display:none"
+        <button class="topbar-btn" id="menuBtn"
           onclick="document.getElementById('sidebar').classList.toggle('open')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
             <line x1="3" y1="6" x2="21" y2="6" />

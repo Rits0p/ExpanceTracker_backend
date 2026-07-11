@@ -23,7 +23,6 @@ const feed = document.getElementById('aiFeed');
 const welcome = document.getElementById('aiWelcome');
 const textarea = document.getElementById('aiTextarea');
 const sendBtn = document.getElementById('aiSendBtn');
-const newChatBtn = document.getElementById('newChatBtn');
 const uploadInput = document.getElementById('aiUploadInput');
 const voiceOverlay = document.getElementById('aiVoiceOverlay');
 const voiceTimer = document.getElementById('aiVoiceTimer');
@@ -61,9 +60,6 @@ document.querySelectorAll('.ai-suggestion').forEach(card => {
 // ── Send Message ──────────────────────────────────────────────────────
 if (sendBtn) {
   sendBtn.addEventListener('click', () => sendMessage());
-}
-if (newChatBtn) {
-  newChatBtn.addEventListener('click', startNewChat);
 }
 
 async function sendMessage(overrideText) {
@@ -205,18 +201,20 @@ async function refreshExpenseList() {
 // ── Message Rendering ────────────────────────────────────────────────
 function hideWelcome() {
   if (welcome) {
-    welcome.style.opacity = '0';
-    welcome.style.transition = 'opacity 0.3s';
-    setTimeout(() => { welcome.style.display = 'none'; }, 300);
+    welcome.style.display = 'none';
+  }
+  if (feed) {
+    feed.classList.add('active');
   }
 }
 
 function showWelcome() {
   if (welcome) {
     welcome.style.display = '';
-    welcome.style.opacity = '0';
-    welcome.style.transition = 'opacity 0.3s';
-    setTimeout(() => { welcome.style.opacity = '1'; }, 10);
+  }
+  if (feed) {
+    feed.classList.remove('active');
+    feed.innerHTML = '';
   }
 }
 
@@ -330,9 +328,8 @@ function appendAiMessage(text, crudType = 'none', crudRecord = null) {
 
   el.innerHTML = `
     <div class="ai-msg-avatar">
-      <svg class="ai-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-        <path d="M12 2a5 5 0 0 0-5 5v2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Z"/>
-        <path d="M9 10V7a3 3 0 0 1 6 0v3"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16">
+        <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 12 18.469c-.59 0-1.17.16-1.678.462a.41.41 0 0 1-.31.039l-.548-.547z"/>
       </svg>
     </div>
     <div class="ai-msg-content">
@@ -340,7 +337,7 @@ function appendAiMessage(text, crudType = 'none', crudRecord = null) {
       <div class="ai-msg-meta">
         <span class="ai-msg-time">${now}</span>
         <button class="ai-copy-btn" onclick="copyText(this, '${escapeAttr(displayText)}')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           Copy
         </button>
       </div>
@@ -354,8 +351,8 @@ function buildExpenseCard(d) {
   return `
   <div class="expense-card" id="${id}">
     <div class="expense-card-header">
-      <span class="ai-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg></span>
-      <h4>Expense Detected</h4>
+      <span class="ai-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg></span>
+      <h4 style="font-size:14px; font-weight:600;">Expense Detected</h4>
       <span class="expense-card-badge">Review Required</span>
     </div>
     <div class="expense-card-body">
@@ -392,7 +389,10 @@ function buildExpenseCard(d) {
       ${d.notes ? `<div class="expense-field"><label>Notes</label><input type="text" id="${id}_notes" value="${escapeAttr(d.notes)}"></div>` : ''}
     </div>
     <div class="expense-card-actions">
-      <button class="btn-save" onclick="saveExpenseCard('${id}')"><span class="ai-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 12.5 10.5 16 17 8"/><path d="M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/></svg></span> Save Expense</button>
+      <button class="btn-save" onclick="saveExpenseCard('${id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M7 12.5 10.5 16 17 8"/><path d="M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/></svg>
+        Save Expense
+      </button>
       <button class="btn-cancel" onclick="document.getElementById('${id}').remove()">Cancel</button>
     </div>
   </div>`;
@@ -439,17 +439,19 @@ async function saveExpenseCard(id) {
     const data = await res.json();
     if (data.success || res.ok) {
       document.getElementById(id).innerHTML = `
-        <div style="padding:16px 18px; display:flex; align-items:center; gap:10px; color:var(--accent-success); font-weight:700;">
-          <span class="ai-icon" style="width:20px;height:20px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <div style="padding:14px 16px; display:flex; align-items:center; gap:8px; color:#10b981; font-weight:600; font-size:14px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
           Expense "<strong>${escapeHtml(title)}</strong>" saved successfully!
         </div>`;
     } else {
-      btn.textContent = '💾 Save Expense';
+      btn.textContent = 'Save Expense';
       btn.disabled = false;
       alert(data.message || 'Failed to save expense. Please try again.');
     }
   } catch (err) {
-    btn.textContent = '💾 Save Expense';
+    btn.textContent = 'Save Expense';
     btn.disabled = false;
     alert('Network error. Please try again.');
   }
@@ -528,7 +530,11 @@ function appendReceiptMessage(file, d) {
   const el = document.createElement('div');
   el.className = 'ai-msg assistant';
   el.innerHTML = `
-    <div class="ai-msg-avatar">🤖</div>
+    <div class="ai-msg-avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16">
+        <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 12 18.469c-.59 0-1.17.16-1.678.462a.41.41 0 0 1-.31.039l-.548-.547z"/>
+      </svg>
+    </div>
     <div class="ai-msg-content">
       <div class="ai-bubble">📄 I've analyzed your receipt. Here's what I found:</div>
       <div class="ai-msg-extra">
@@ -559,7 +565,6 @@ function appendReceiptMessage(file, d) {
 }
 
 function confirmReceiptExpense(id, d) {
-  // Replace receipt card with expense confirmation card
   const card = document.getElementById(id);
   if (card) {
     const wrapper = card.parentElement;
@@ -684,7 +689,11 @@ function showTyping() {
   const wrap = document.createElement('div');
   wrap.className = 'ai-msg assistant';
   wrap.innerHTML = `
-    <div class="ai-msg-avatar">🤖</div>
+    <div class="ai-msg-avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16">
+        <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 12 18.469c-.59 0-1.17.16-1.678.462a.41.41 0 0 1-.31.039l-.548-.547z"/>
+      </svg>
+    </div>
     <div class="ai-msg-content">
       <div class="ai-typing">
         <span></span><span></span><span></span>
@@ -722,7 +731,11 @@ async function showDashboard(saveToHistory = true) {
   const el = document.createElement('div');
   el.className = 'ai-msg assistant';
   el.innerHTML = `
-    <div class="ai-msg-avatar">🤖</div>
+    <div class="ai-msg-avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16">
+        <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 12 18.469c-.59 0-1.17.16-1.678.462a.41.41 0 0 1-.31.039l-.548-.547z"/>
+      </svg>
+    </div>
     <div class="ai-msg-content">
       <div class="ai-bubble">📊 Here's your financial overview for this month:</div>
       <div class="ai-msg-extra">
@@ -807,9 +820,9 @@ function renderMarkdown(text) {
 
 function copyText(btn, text) {
   navigator.clipboard.writeText(text).then(() => {
-    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
     setTimeout(() => {
-      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy`;
+      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy`;
     }, 1500);
   });
 }
@@ -908,12 +921,14 @@ function renderChatsList() {
       item.dataset.id = chat.id;
 
       item.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
         <span class="ai-history-item-text" id="chat-title-text-${chat.id}">${escapeHtml(chat.title)}</span>
         <input type="text" class="ai-history-item-input" id="chat-title-input-${chat.id}" value="${escapeHtml(chat.title)}" style="display: none;">
         <div class="ai-three-dot-wrap">
           <button class="ai-three-dot-btn" onclick="toggleChatMenu(event, ${chat.id})" title="More">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
               <circle cx="12" cy="5" r="1.5"/>
               <circle cx="12" cy="12" r="1.5"/>
               <circle cx="12" cy="19" r="1.5"/>
@@ -921,11 +936,15 @@ function renderChatsList() {
           </button>
           <div class="ai-chat-menu" id="chat-menu-${chat.id}">
             <button class="ai-chat-menu-item" onclick="startRenameChat(event, ${chat.id})">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+              </svg>
               Rename
             </button>
             <button class="ai-chat-menu-item danger" onclick="triggerDeleteChat(event, ${chat.id})">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
               Delete
             </button>
           </div>

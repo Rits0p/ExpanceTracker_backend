@@ -1,0 +1,34 @@
+[tool.ruff]
+# Target Python version
+target-version = "py312"
+
+# Exclude directories
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "migrations",
+    "staticfiles",
+    "media"
+]
+
+# Set the maximum line length
+line-length = 120
+
+[tool.ruff.lint]
+# Select rules (E/W: pycodestyle, F: Pyflakes, I: isort, UP: pyupgrade, B: bugbear, C4: comprehensions)
+select = ["E", "F", "W", "I", "UP", "B", "C4", "RUF"]
+ignore = []
+
+# Allow unused imports in __init__.py files
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+known-first-party = ["api", "config"]
+
+[tool.bandit]
+exclude_dirs = [".venv", "venv", "tests"]
+skips = ["B101"] # Allow assert statements in tests if run, but tests are excluded anyway

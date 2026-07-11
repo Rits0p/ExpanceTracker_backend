@@ -117,6 +117,7 @@ USE_TZ = True
 # ── Static files ──
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'          # collectstatic output dir
+STATIC_ROOT.mkdir(exist_ok=True)
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]

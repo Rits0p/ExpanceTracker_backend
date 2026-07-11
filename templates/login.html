@@ -1,6 +1,6 @@
 {% load static %}
 <!doctype html>
-<html lang="en">
+<html lang="en" class="auth-html">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,240 +10,8 @@
     />
     <title>ExpenseIQ — Login</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}" />
-    <style>
-      html,
-      body {
-        height: 100%;
-      }
-      body {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--bg-page);
-        position: relative;
-        overflow: hidden;
-      }
-      /* Animated background orbs */
-      .bg-orb {
-        position: fixed;
-        border-radius: 50%;
-        filter: blur(100px);
-        opacity: 0.05;
-        animation: orbFloat 20s ease-in-out infinite;
-        pointer-events: none;
-        z-index: 0;
-      }
-      .bg-orb-1 {
-        width: 500px;
-        height: 500px;
-        background: var(--accent-primary);
-        top: -120px;
-        right: -100px;
-        animation-delay: 0s;
-      }
-      .bg-orb-2 {
-        width: 400px;
-        height: 400px;
-        background: var(--accent-success);
-        bottom: -80px;
-        left: -80px;
-        animation-delay: -7s;
-      }
-      .bg-orb-3 {
-        width: 300px;
-        height: 300px;
-        background: #06b6d4;
-        top: 50%;
-        left: 50%;
-        animation-delay: -14s;
-      }
-      @keyframes orbFloat {
-        0%,
-        100% {
-          transform: translate(0, 0) scale(1);
-        }
-        25% {
-          transform: translate(30px, -40px) scale(1.05);
-        }
-        50% {
-          transform: translate(-20px, 20px) scale(0.95);
-        }
-        75% {
-          transform: translate(40px, 30px) scale(1.02);
-        }
-      }
-
-      .auth-wrapper {
-        position: relative;
-        z-index: 1;
-        width: 100%;
-        max-width: 440px;
-        padding: 20px;
-      }
-      .auth-card {
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-card);
-        padding: 40px 36px;
-        box-shadow: var(--shadow-card);
-      }
-      .auth-header {
-        text-align: center;
-        margin-bottom: 32px;
-      }
-      .auth-logo {
-        width: 56px;
-        height: 56px;
-        background: var(--accent-primary);
-        border-radius: var(--radius-input);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 26px;
-        font-weight: 600;
-        color: #fff;
-        margin: 0 auto 20px;
-        box-shadow: 0 4px 12px rgba(79, 110, 247, 0.2);
-        transition: transform 0.3s ease;
-      }
-      .auth-logo:hover {
-        transform: scale(1.05);
-      }
-      .auth-title {
-        font-size: 24px;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 8px;
-        letter-spacing: -0.5px;
-      }
-      .auth-subtitle {
-        color: var(--text-secondary);
-        font-size: 14px;
-        line-height: 1.5;
-      }
-      .auth-footer {
-        text-align: center;
-        margin-top: 28px;
-        font-size: 14px;
-        color: var(--text-secondary);
-      }
-      .auth-link {
-        color: var(--accent-primary);
-        text-decoration: none;
-        font-weight: 600;
-        transition: opacity 0.2s;
-      }
-      .auth-link:hover {
-        opacity: 0.8;
-      }
-      .auth-divider {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        margin: 24px 0;
-        color: var(--text-secondary);
-        font-size: 12px;
-      }
-      .auth-divider::before,
-      .auth-divider::after {
-        content: "";
-        flex: 1;
-        height: 1px;
-        background: var(--border-color);
-      }
-
-      /* Password toggle */
-      .password-wrapper {
-        position: relative;
-      }
-      .password-toggle {
-        position: absolute;
-        right: 14px;
-        top: 50%;
-        transform: translateY(-50%);
-        background: none;
-        border: none;
-        color: var(--text-secondary);
-        cursor: pointer;
-        padding: 4px;
-        display: flex;
-        align-items: center;
-        transition: color 0.2s;
-      }
-      .password-toggle:hover {
-        color: var(--text-primary);
-      }
-
-      /* Alert messages */
-      .auth-alert {
-        padding: 12px 16px;
-        border-radius: var(--radius-input);
-        font-size: 13px;
-        margin-bottom: 20px;
-        display: none;
-        animation: fadeIn 0.3s ease;
-        line-height: 1.5;
-      }
-      .auth-alert.error {
-        background: rgba(244, 91, 91, 0.1);
-        color: var(--accent-danger);
-        border: 1px solid rgba(244, 91, 91, 0.2);
-      }
-      .auth-alert.success {
-        background: rgba(34, 196, 138, 0.1);
-        color: var(--accent-success);
-        border: 1px solid rgba(34, 196, 138, 0.2);
-      }
-
-      /* Loading state */
-      .btn.loading {
-        pointer-events: none;
-        opacity: 0.7;
-      }
-      .btn.loading .btn-text {
-        display: none;
-      }
-      .btn.loading .btn-spinner {
-        display: inline-block;
-      }
-      .btn-spinner {
-        display: none;
-        width: 18px;
-        height: 18px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-top-color: #fff;
-        border-radius: 50%;
-        animation: spin 0.6s linear infinite;
-      }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-
-      /* Responsive */
-      @media (max-width: 480px) {
-        .auth-card {
-          padding: 32px 24px;
-        }
-        .auth-title {
-          font-size: 22px;
-        }
-        .bg-orb-1 {
-          width: 300px;
-          height: 300px;
-        }
-        .bg-orb-2 {
-          width: 250px;
-          height: 250px;
-        }
-        .bg-orb-3 {
-          display: none;
-        }
-      }
-    </style>
   </head>
-  <body>
+  <body class="auth-body login-body">
     <div class="bg-orb bg-orb-1"></div>
     <div class="bg-orb bg-orb-2"></div>
     <div class="bg-orb bg-orb-3"></div>
@@ -259,9 +27,9 @@
         <div class="auth-alert" id="authAlert"></div>
 
         {% if messages %}
-        <div style="margin-bottom: 20px">
+        <div class="auth-alert-wrapper">
           {% for message in messages %}
-          <div class="auth-alert {{ message.tags }}" style="display: block">
+          <div class="auth-alert {{ message.tags }}">
             {{ message }}
           </div>
           {% endfor %}
@@ -282,23 +50,9 @@
             />
           </div>
           <div class="form-group">
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 8px;
-              "
-            >
-              <label class="form-label" style="margin-bottom: 0"
-                >Password</label
-              >
-              <a
-                href="{% url 'password_reset' %}"
-                class="auth-link"
-                style="font-size: 13px"
-                >Forgot Password?</a
-              >
+            <div class="form-label-row">
+              <label class="form-label">Password</label>
+              <a href="{% url 'password_reset' %}" class="auth-link">Forgot Password?</a>
             </div>
             <div class="password-wrapper">
               <input
@@ -332,9 +86,8 @@
           </div>
           <button
             type="submit"
-            class="btn btn-primary"
+            class="btn btn-primary btn-auth"
             id="loginBtn"
-            style="width: 100%; margin-top: 16px; padding: 14px 24px"
           >
             <span class="btn-text">Log In</span>
             <div class="btn-spinner"></div>

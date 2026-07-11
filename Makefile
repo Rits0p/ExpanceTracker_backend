@@ -50,3 +50,16 @@ createsuperuser:
 clean:
 	docker compose down -v --rmi local
 	docker compose -f docker-compose.dev.yml down -v --rmi local
+
+# ── Local Development Tools ───────────────────────────────────────────────────
+test:
+	python manage.py test
+
+lint:
+	ruff check .
+
+format:
+	ruff format .
+
+security-check:
+	bandit -c pyproject.toml -r .
