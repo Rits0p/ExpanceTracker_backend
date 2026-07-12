@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404
 
 from ..models import Chat, Message
 from ..serializers import ChatSerializer, MessageSerializer
-from ..utils import ApiResponse
+from ..utils import ApiResponse, get_pagination_params
 from .ai_views import (
     _build_user_context,
     _strip_json_fences,
@@ -33,9 +33,15 @@ class ChatListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        page, limit = get_pagination_params(request.query_params)
+
         chats = Chat.objects.filter(user=request.user).order_by('-updated_at')
-        serializer = ChatSerializer(chats, many=True)
-        return ApiResponse.success(data=serializer.data, message="Chats retrieved successfully")
+        total = chats.count()
+        offset = (page - 1) * limit
+        paginated = chats[offset:offset + limit]
+
+        serializer = ChatSerializer(paginated, many=True)
+        return ApiResponse.paginated(serializer.data, page, limit, total, message="Chats retrieved successfully")
 
     def post(self, request):
         chat = Chat.objects.create(user=request.user, title="New Chat")
@@ -83,9 +89,16 @@ class MessageListCreateView(APIView):
 
     def get(self, request, chat_pk):
         chat = get_object_or_404(Chat, id=chat_pk, user=request.user)
-        messages = Message.objects.filter(chat=chat).order_by('created_at')
-        serializer = MessageSerializer(messages, many=True)
-        return ApiResponse.success(data=serializer.data, message="Messages retrieved")
+        page, limit = get_pagination_params(request.query_params)
+
+        messages = Message.objects.filter(chat=chat).order_by('-created_at')
+        total = messages.count()
+        offset = (page - 1) * limit
+        paginated = list(messages[offset:offset + limit])
+        paginated.reverse()
+
+        serializer = MessageSerializer(paginated, many=True)
+        return ApiResponse.paginated(serializer.data, page, limit, total, message="Messages retrieved")
 
     def post(self, request, chat_pk):
         chat = get_object_or_404(Chat, id=chat_pk, user=request.user)

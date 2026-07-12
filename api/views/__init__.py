@@ -8,7 +8,7 @@ from django.db.models import Q
 
 from ..models import Expense
 from ..serializers import ExpenseSerializer
-from ..utils import ApiResponse
+from ..utils import ApiResponse, get_pagination_params
 
 
 def normalize_expense_payload(data):
@@ -54,8 +54,7 @@ class ExpenseListCreateView(APIView):
         return normalize_expense_payload(data)
 
     def get(self, request):
-        page = int(request.query_params.get('page', 1))
-        limit = int(request.query_params.get('limit', 10))
+        page, limit = get_pagination_params(request.query_params)
         sort_by = request.query_params.get('sortBy', 'expense_date')
         sort_order = request.query_params.get('sortOrder', 'desc')
         category = request.query_params.get('category')
@@ -185,9 +184,15 @@ class ExpenseRecurringView(APIView):
     """GET /api/v1/expenses/recurring"""
 
     def get(self, request):
+        page, limit = get_pagination_params(request.query_params)
+
         expenses = Expense.objects.filter(user=request.user, is_recurring=True).order_by('-expense_date')
-        serializer = ExpenseSerializer(expenses, many=True)
-        return ApiResponse.success(serializer.data)
+        total = expenses.count()
+        offset = (page - 1) * limit
+        paginated = expenses[offset:offset + limit]
+
+        serializer = ExpenseSerializer(paginated, many=True)
+        return ApiResponse.paginated(serializer.data, page, limit, total)
 
 
 class ExpenseReceiptUploadView(APIView):

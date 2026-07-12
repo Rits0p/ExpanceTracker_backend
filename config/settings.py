@@ -237,6 +237,10 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
 }
 
+# ── Pagination Limits ──
+PAGINATION_DEFAULT_LIMIT = 20
+PAGINATION_MAX_LIMIT = 100
+
 # ── Authentication Redirects ──
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'

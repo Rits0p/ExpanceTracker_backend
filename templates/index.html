@@ -11,20 +11,21 @@
 
 {% block content %}
 <div class="page fade-in" id="dashboardPage">
-  <!-- Dashboard Filter -->
+
+  <!-- ── Dashboard Filter Bar ─────────────────── -->
   <div class="dashboard-filter-bar fade-in" style="
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 16px;
-            margin-bottom: 24px;
-            background: var(--bg-card);
-            padding: 16px 20px;
-            border-radius: var(--radius-card);
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow-card);
-          ">
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 28px;
+        background: var(--bg-card);
+        padding: 12px 16px;
+        border-radius: var(--radius-card);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-card);
+      ">
     <div class="filter-tabs" id="dashboardTimeFilters">
       <span class="filter-tab" data-range="today">Today</span>
       <span class="filter-tab" data-range="7d">7 Days</span>
@@ -33,75 +34,75 @@
       <span class="filter-tab" data-range="custom">Custom</span>
     </div>
     <div class="custom-date-range" id="customDateRange" style="
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              opacity: 0.5;
-              pointer-events: none;
-              transition: all 0.3s ease;
-            ">
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          opacity: 0.45;
+          pointer-events: none;
+        ">
       <input type="date" class="form-input" id="filterStartDate" style="
-                padding: 6px 12px;
-                font-size: 13px;
-                height: 32px;
-                border-radius: var(--radius-input);
-              " />
-      <span style="color: var(--text-secondary); font-size: 13px">to</span>
+              padding: 6px 12px;
+              font-size: 13px;
+              height: 34px;
+              border-radius: var(--radius-input);
+            " />
+      <span style="color: var(--text-muted); font-size: 13px">→</span>
       <input type="date" class="form-input" id="filterEndDate" style="
-                padding: 6px 12px;
-                font-size: 13px;
-                height: 32px;
-                border-radius: var(--radius-input);
-              " />
+              padding: 6px 12px;
+              font-size: 13px;
+              height: 34px;
+              border-radius: var(--radius-input);
+            " />
       <button class="btn btn-primary" id="applyFilterBtn" style="
-                padding: 6px 16px;
-                font-size: 13px;
-                height: 32px;
-                border-radius: var(--radius-btn);
-              ">
+              padding: 6px 18px;
+              font-size: 13px;
+              height: 34px;
+              border-radius: var(--radius-btn);
+            ">
         Apply
       </button>
     </div>
   </div>
 
-  <!-- KPI Cards -->
+  <!-- ── Primary KPI Cards (4 hero metrics) ───── -->
   <div class="kpi-grid">
-    <div class="kpi-card emerald fade-in stagger-1">
+    <!-- Total Budget -->
+    <div class="kpi-card primary emerald fade-in stagger-1">
       <div class="kpi-header">
         <div class="kpi-label" id="kpiBudgetLabel">Total Budget</div>
         <div class="kpi-icon emerald">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-            <path
-              d="M17 8v-3a1 1 0 0 0 -1 -1h-10a2 2 0 0 0 0 4h12a1 1 0 0 1 1 1v3m0 4v3a1 1 0 0 1 -1 1h-12a2 2 0 0 1 -2 -2v-12" />
+            <path d="M17 8v-3a1 1 0 0 0 -1 -1h-10a2 2 0 0 0 0 4h12a1 1 0 0 1 1 1v3m0 4v3a1 1 0 0 1 -1 1h-12a2 2 0 0 1 -2 -2v-12" />
             <path d="M20 12v4h-4a2 2 0 0 1 0 -4h4" />
           </svg>
         </div>
       </div>
       <div class="kpi-value" id="kpiBudget">$0</div>
-      <span class="kpi-change up">▲ 12.5% vs last month</span>
     </div>
-    <div class="kpi-card purple fade-in stagger-2">
+
+    <!-- Total Expenses -->
+    <div class="kpi-card primary purple fade-in stagger-2">
       <div class="kpi-header">
-        <div class="kpi-label">Total Expenses</div>
+        <div class="kpi-label" id="kpiExpenseLabel">Total Expenses</div>
         <div class="kpi-icon purple">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-            <path
-              d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2m4 -14h6m-6 4h6m-2 4h2" />
+            <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2m4 -14h6m-6 4h6m-2 4h2" />
           </svg>
         </div>
       </div>
       <div class="kpi-value" id="kpiExpense">$0</div>
-      <span class="kpi-change down">▼ 3.2% vs last month</span>
     </div>
-    <div class="kpi-card cyan fade-in stagger-3">
+
+    <!-- Remaining Balance -->
+    <div class="kpi-card primary cyan fade-in stagger-3">
       <div class="kpi-header">
-        <div class="kpi-label" id="kpiBalanceLabel">Remaining Balance</div>
+        <div class="kpi-label" id="kpiBalanceLabel">Remaining Budget</div>
         <div class="kpi-icon cyan">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none" />
             <path d="M3 21l18 0" />
@@ -116,32 +117,14 @@
         </div>
       </div>
       <div class="kpi-value" id="kpiBalance">$0</div>
-      <span class="kpi-change up">▲ 8.1% vs last month</span>
     </div>
-    <div class="kpi-card orange fade-in stagger-4">
+
+    <!-- Savings Rate -->
+    <div class="kpi-card primary orange fade-in stagger-4">
       <div class="kpi-header">
-        <div class="kpi-label">Monthly Expense</div>
+        <div class="kpi-label" id="kpiSavingsLabel">Savings Rate</div>
         <div class="kpi-icon orange">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-            <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
-            <path d="M18 14v4h4" />
-            <path d="M18 18m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
-            <path d="M15 3v4" />
-            <path d="M7 3v4" />
-            <path d="M3 11h16" />
-          </svg>
-        </div>
-      </div>
-      <div class="kpi-value" id="kpiMonthly">$0</div>
-      <span class="kpi-change down">▼ 5.4% vs last month</span>
-    </div>
-    <div class="kpi-card emerald fade-in stagger-5">
-      <div class="kpi-header">
-        <div class="kpi-label">Savings Rate</div>
-        <div class="kpi-icon emerald">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none" />
             <path d="M3 17l6 -6l4 4l8 -8" />
@@ -150,13 +133,34 @@
         </div>
       </div>
       <div class="kpi-value" id="kpiSavings">0%</div>
-      <span class="kpi-change up">▲ 2.3% improvement</span>
     </div>
-    <div class="kpi-card purple fade-in stagger-6">
+  </div>
+
+  <!-- ── Secondary KPI Cards (4 supporting metrics) ── -->
+  <div class="kpi-grid secondary">
+    <!-- Monthly Expense -->
+    <div class="kpi-card secondary emerald fade-in stagger-5">
       <div class="kpi-header">
-        <div class="kpi-label">Weekly Expense</div>
+        <div class="kpi-label">Monthly</div>
+        <div class="kpi-icon emerald">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+            <path d="M18 14v4h4" /><path d="M18 18m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
+            <path d="M15 3v4" /><path d="M7 3v4" /><path d="M3 11h16" />
+          </svg>
+        </div>
+      </div>
+      <div class="kpi-value" id="kpiMonthly">$0</div>
+    </div>
+
+    <!-- Weekly Expense -->
+    <div class="kpi-card secondary purple fade-in stagger-6">
+      <div class="kpi-header">
+        <div class="kpi-label">Weekly</div>
         <div class="kpi-icon purple">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none" />
             <path d="M13 3l0 7l6 0l-8 11l0 -7l-6 0l8 -11" />
@@ -164,13 +168,14 @@
         </div>
       </div>
       <div class="kpi-value" id="kpiWeekly">$0</div>
-      <span class="kpi-change up">▲ 1.8% vs last week</span>
     </div>
-    <div class="kpi-card cyan fade-in stagger-7">
+
+    <!-- Daily Average -->
+    <div class="kpi-card secondary cyan fade-in stagger-7">
       <div class="kpi-header">
         <div class="kpi-label">Daily Average</div>
         <div class="kpi-icon cyan">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none" />
             <path d="M3 12m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" />
@@ -181,27 +186,25 @@
         </div>
       </div>
       <div class="kpi-value" id="kpiDailyAvg">$0</div>
-      <span class="kpi-change up">▲ 0.5% vs last week</span>
     </div>
-    <div class="kpi-card orange fade-in stagger-8">
+
+    <!-- Active Subscriptions -->
+    <div class="kpi-card secondary orange fade-in stagger-8">
       <div class="kpi-header">
         <div class="kpi-label">Active Subs</div>
         <div class="kpi-icon orange">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none" />
             <path d="M3 5m0 3a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3z" />
-            <path d="M3 10l18 0" />
-            <path d="M7 15l.01 0" />
-            <path d="M11 15l2 0" />
+            <path d="M3 10l18 0" /><path d="M7 15l.01 0" /><path d="M11 15l2 0" />
           </svg>
         </div>
       </div>
       <div class="kpi-value" id="kpiSubs">4</div>
-      <span class="kpi-change down">▼ 1 since last month</span>
     </div>
   </div>
-
+  
   <!-- Charts Row 1 -->
   <div class="charts-grid">
     <div class="card fade-in" style="display:flex; flex-direction:column; height:100%;">
@@ -245,15 +248,18 @@
       <div class="chart-container" id="incomeExpenseChart"></div>
     </div>
   </div>
-
+  
   <!-- Recent Transactions -->
-  <div class="card fade-in">
+  <div class="card fade-in" style="margin-bottom: 24px;">
     <div class="card-header">
-      <div class="card-title">Recent Expenses</div>
+      <div>
+        <div class="card-title">Recent Expenses</div>
+        <div class="card-subtitle">Your latest transactions</div>
+      </div>
       <a href="{% url 'expenses' %}" class="btn btn-sm btn-secondary">View All</a>
     </div>
     <div class="table-wrapper">
-      <table>
+      <table class="dashboard-table">
         <thead>
           <tr>
             <th>Transaction</th>
@@ -261,13 +267,12 @@
             <th>Date</th>
             <th>Method</th>
             <th>Amount</th>
-            <th>Status</th>
           </tr>
         </thead>
         <tbody id="recentTransactions">
           {% for e in recent_expenses %}
           <tr>
-            <td style="color:var(--text-primary);font-weight:500">{{ e.title }}</td>
+            <td class="td-title">{{ e.title }}</td>
             <td>
               <span class="badge badge-cyan">
                 {% if e.category_icon %}
@@ -276,14 +281,15 @@
                 {{ e.category }}
               </span>
             </td>
-            <td>{{ e.expense_date|date:"Y-m-d" }}</td>
-            <td>{{ e.payment_method }}</td>
-            <td style="color:var(--accent-danger);font-weight:600">-{{ e.amount }}</td>
-            <td><span class="badge badge-emerald">Completed</span></td>
+            <td style="color:var(--text-secondary);font-size:13px;">{{ e.expense_date|date:"M j, Y" }}</td>
+            <td style="color:var(--text-secondary);font-size:13px;">{{ e.payment_method }}</td>
+            <td class="td-amount">−{{ e.amount }}</td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="6" style="text-align:center">No recent expenses found.</td>
+            <td colspan="5" style="text-align:center; padding: 40px 16px; color: var(--text-muted);">
+              No recent expenses found.
+            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -291,28 +297,48 @@
     </div>
   </div>
 
-  <!-- Recurring Expense Widget -->
+  <!-- ── Upcoming Recurring Widget ───────────── -->
   <div class="recurring-widget fade-in">
     <div class="recurring-widget-header">
       <div class="recurring-widget-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"
-          style="display:inline;vertical-align:middle;margin-right:6px;">
-          <path d="M12 8v4l3 3m6-4a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        Upcoming Recurring
+        <div>
+          Upcoming Recurring
+        </div>
       </div>
       <a href="/expenses/" class="btn btn-sm btn-secondary">Manage</a>
     </div>
+
+    <!-- Table wrapper — shown when data loads -->
+    <div class="recurring-table-wrap" id="recurringTableWrap" style="display:none;">
+      <table class="recurring-table">
+        <thead>
+          <tr>
+            <th>Subscription</th>
+            <th>Frequency</th>
+            <th>Next Due</th>
+            <th>Status</th>
+            <th style="text-align:right;">Amount</th>
+          </tr>
+        </thead>
+        <tbody id="recurringTableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Empty / loading state -->
     <div id="recurringWidgetList">
-      <div class="recurring-empty">Loading...</div>
+      <div class="recurring-empty">
+        <svg class="recurring-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 8v4l3 3m6-4a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p>Loading recurring expenses…</p>
+      </div>
     </div>
   </div>
+
 </div>
 
 <!-- Quick Add FAB -->
-<button class="fab" onclick="openQuickAddModal()" title="Quick Add Expense">
-  +
-</button>
+<button class="fab" onclick="openQuickAddModal()" title="Quick Add Expense">+</button>
 
 {% include 'partials/expense_form_modal.html' %}
 
@@ -322,13 +348,12 @@
 <script>
   let dashboardCategories = [];
 
-  // Dashboard initialization
+  // ── Dashboard Initialization ─────────────────────────────────────
   async function initDashboard(startDate, endDate) {
     const sym = (typeof Settings !== 'undefined' && Settings._data && Settings._data.currencySymbol) || '$';
     const quickAmountLabel = document.getElementById('quickAmountLabel');
     if (quickAmountLabel) quickAmountLabel.textContent = `Amount (${sym}) *`;
 
-    // Wait for auth to be ready
     if (typeof Auth !== "undefined") {
       await Auth.init();
     }
@@ -358,45 +383,99 @@
 
     // Render KPIs
     if (AppData.kpis) {
-      // Use Budget API if a global budget is set, otherwise fallback to kpis.totalIncome
-      const hasBudget = AppData.budget && AppData.budget.budget > 0;
-      const totalBudget = hasBudget
-        ? AppData.budget.budget
-        : AppData.kpis.totalIncome || 0;
+      const kpis = AppData.kpis || {};
+      const activeTab = document.querySelector("#dashboardTimeFilters .filter-tab.active");
+      const activeRange = activeTab ? activeTab.dataset.range : "30d";
 
-      const remainingBalance = hasBudget
-        ? AppData.budget.remaining
-        : AppData.kpis.remainingBalance || 0;
-
-      const budgetLabelEl = document.getElementById("kpiBudgetLabel");
-      if (budgetLabelEl) {
-        budgetLabelEl.textContent = "Total Budget";
-      }
-      const balanceLabelEl = document.getElementById("kpiBalanceLabel");
-      if (balanceLabelEl) {
-        balanceLabelEl.textContent = "Remaining Budget";
+      // 1. Calculate Monthly Budget (Base)
+      const catBudgetSum = dashboardCategories.reduce((acc, c) => acc + (parseFloat(c.monthlyBudget) || 0), 0);
+      let monthlyBudget = catBudgetSum;
+      if (AppData.budgetDetail && AppData.budgetDetail.totalMonthlyBudget > 0) {
+        monthlyBudget = AppData.budgetDetail.totalMonthlyBudget;
+      } else if (AppData.budget && AppData.budget.budget > 0) {
+        monthlyBudget = AppData.budget.budget;
       }
 
-      document.getElementById("kpiBudget").textContent =
-        Settings.formatCurrency(totalBudget);
-      document.getElementById("kpiExpense").textContent =
-        Settings.formatCurrency(AppData.kpis.totalExpense || 0);
-      document.getElementById("kpiBalance").textContent =
-        Settings.formatCurrency(remainingBalance);
-      document.getElementById("kpiMonthly").textContent =
-        Settings.formatCurrency(AppData.kpis.monthlyExpense || 0);
-      animateCounter(
-        document.getElementById("kpiSavings"),
-        AppData.kpis.savingsRate || 0,
-        "",
-        "%",
-      );
-      document.getElementById("kpiWeekly").textContent =
-        Settings.formatCurrency(AppData.kpis.weeklyExpense || 0);
-      document.getElementById("kpiDailyAvg").textContent =
-        Settings.formatCurrency(AppData.kpis.dailyAverage || 0);
-      document.getElementById("kpiSubs").textContent =
-        AppData.kpis.activeSubs !== undefined ? AppData.kpis.activeSubs : 4;
+      // 2. Compute dynamic labels and values depending on chosen timeframe
+      let displayBudget = monthlyBudget;
+      let displayExpenses = kpis.monthlyExpense || 0; // Filtered to current date range
+      let budgetLabel = "Total Budget";
+      let expenseLabel = "Total Expenses";
+      let balanceLabel = "Remaining Budget";
+      let savingsLabel = "Savings Rate";
+
+      if (activeRange === "today") {
+        displayBudget = (AppData.budgetDetail && AppData.budgetDetail.dailyBudget > 0)
+          ? AppData.budgetDetail.dailyBudget
+          : (monthlyBudget / 30);
+        budgetLabel = "Daily Budget";
+        expenseLabel = "Today's Expenses";
+        balanceLabel = "Remaining Today";
+        savingsLabel = "Savings (Today)";
+      } else if (activeRange === "7d") {
+        displayBudget = (AppData.budgetDetail && AppData.budgetDetail.weeklyBudget > 0)
+          ? AppData.budgetDetail.weeklyBudget
+          : (monthlyBudget * 7 / 30);
+        budgetLabel = "Weekly Budget";
+        expenseLabel = "7d Expenses";
+        balanceLabel = "Remaining (7d)";
+        savingsLabel = "Savings (7d)";
+      } else if (activeRange === "30d") {
+        displayBudget = monthlyBudget;
+        budgetLabel = "30 Days Budget";
+        expenseLabel = "30d Expenses";
+        balanceLabel = "Remaining (30d)";
+        savingsLabel = "Savings (30d)";
+      } else if (activeRange === "month") {
+        displayBudget = monthlyBudget;
+        budgetLabel = "Monthly Budget";
+        expenseLabel = "Monthly Expenses";
+        balanceLabel = "Remaining Budget";
+        savingsLabel = "Savings Rate";
+      } else if (activeRange === "custom") {
+        let days = 30;
+        const startVal = document.getElementById("filterStartDate").value;
+        const endVal = document.getElementById("filterEndDate").value;
+        if (startVal && endVal) {
+          const s = new Date(startVal);
+          const e = new Date(endVal);
+          const diffTime = Math.abs(e - s);
+          days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+        }
+        displayBudget = (monthlyBudget / 30) * days;
+        budgetLabel = "Period Budget";
+        expenseLabel = "Period Expenses";
+        balanceLabel = "Remaining (Period)";
+        savingsLabel = "Savings (Period)";
+      }
+
+      // Calculations
+      const remainingBalance = displayBudget - displayExpenses;
+      const savingsPercent = displayBudget > 0 ? ((remainingBalance / displayBudget) * 100) : 0;
+
+      // Update Labels
+      const bLabelEl = document.getElementById("kpiBudgetLabel");
+      if (bLabelEl) bLabelEl.textContent = budgetLabel;
+
+      const eLabelEl = document.getElementById("kpiExpenseLabel");
+      if (eLabelEl) eLabelEl.textContent = expenseLabel;
+
+      const balLabelEl = document.getElementById("kpiBalanceLabel");
+      if (balLabelEl) balLabelEl.textContent = balanceLabel;
+
+      const sLabelEl = document.getElementById("kpiSavingsLabel");
+      if (sLabelEl) sLabelEl.textContent = savingsLabel;
+
+      // Update Values
+      document.getElementById("kpiBudget").textContent = Settings.formatCurrency(displayBudget);
+      document.getElementById("kpiExpense").textContent = Settings.formatCurrency(displayExpenses);
+      document.getElementById("kpiBalance").textContent = Settings.formatCurrency(remainingBalance);
+      
+      animateCounter(document.getElementById("kpiSavings"), Math.round(savingsPercent), "", "%");
+      document.getElementById("kpiMonthly").textContent = Settings.formatCurrency(kpis.monthlyExpense || 0);
+      document.getElementById("kpiWeekly").textContent = Settings.formatCurrency(kpis.weeklyExpense || 0);
+      document.getElementById("kpiDailyAvg").textContent = Settings.formatCurrency(kpis.dailyAverage || 0);
+      document.getElementById("kpiSubs").textContent = kpis.activeSubs !== undefined ? kpis.activeSubs : 4;
     }
 
     // Render Recent Transactions
@@ -404,212 +483,108 @@
     tbody.innerHTML = "";
     if (AppData.expenses && AppData.expenses.length > 0) {
       AppData.expenses.slice(0, 7).forEach((e) => {
-        const cat = dashboardCategories.find(
-          (c) => c.name === e.category,
-        );
-        const badgeClass = "badge-emerald"; // API could provide status
+        const cat = dashboardCategories.find((c) => c.name === e.category);
         tbody.innerHTML += `
-            <tr>
-              <td style="color:var(--text-primary);font-weight:500">${e.title}</td>
-              <td><span class="badge badge-cyan"><i class="ph ${cat ? cat.icon || 'ph-package' : 'ph-package'}"></i> ${e.category}</span></td>
-              <td>${Settings.formatDate(e.expenseDate || e.createdAt)}</td>
-              <td>${e.paymentMethod || e.payment_method || "Cash"}</td>
-              <td style="color:var(--accent-danger);font-weight:600">-${Settings.formatCurrency(e.amount)}</td>
-              <td><span class="badge ${badgeClass}">Completed</span></td>
-            </tr>`;
+          <tr>
+            <td class="td-title">${e.title}</td>
+            <td><span class="badge badge-cyan"><i class="ph ${cat ? cat.icon || 'ph-package' : 'ph-package'}"></i> ${e.category}</span></td>
+            <td style="color:var(--text-secondary);font-size:13px;">${Settings.formatDate(e.expenseDate || e.createdAt)}</td>
+            <td style="color:var(--text-secondary);font-size:13px;">${e.paymentMethod || e.payment_method || "Cash"}</td>
+            <td class="td-amount">−${Settings.formatCurrency(e.amount)}</td>
+          </tr>`;
       });
     } else {
-      tbody.innerHTML =
-        '<tr><td colspan="6" style="text-align:center">No recent expenses found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px 16px; color: var(--text-muted);">No recent expenses found.</td></tr>';
     }
 
-    // Charts
+    // ── Charts ──────────────────────────────────────────────────────
     const isLight = () => document.body.classList.contains("light-mode");
-    const gridColor = () =>
-      isLight() ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.06)";
-    const textColor = () =>
-      isLight() ? "#273F4F" : "#D7D7D7";
-    const chartMode = () =>
-      isLight() ? "light" : "dark";
+    const gridColor = () => isLight() ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.06)";
+    const textColor = () => isLight() ? "#273F4F" : "#D7D7D7";
+    const chartMode = () => isLight() ? "light" : "dark";
 
-    // Dynamic chart colors mapping — brand palette
     const primaryColor = () => "#FE7743";
     const successColor = () => "#2CB67D";
-    const dangerColor = () => "#E84545";
     const purpleColor = () => isLight() ? "#8B5CF6" : "#B39DDB";
-    const cyanColor = () => "#447D9B";
-    const orangeColor = () => "#FE7743";
+    const cyanColor   = () => "#447D9B";
 
     const getDonutColors = () => isLight()
       ? ["#FE7743", "#447D9B", "#8B5CF6", "#2CB67D", "#E84545", "#F59E0B"]
       : ["#FE7743", "#6BB5D4", "#B39DDB", "#2CB67D", "#F07070", "#FFCC80"];
 
     const apexDefaults = () => ({
-      chart: {
-        background: "transparent",
-        toolbar: { show: false },
-        parentHeightOffset: 0,
-        animations: { enabled: true },
-      },
+      chart: { background: "transparent", toolbar: { show: false }, parentHeightOffset: 0, animations: { enabled: true } },
       theme: { mode: chartMode() },
-      grid: {
-        borderColor: gridColor(),
-        strokeDashArray: 4,
-        padding: { top: 0, right: 0, bottom: 0, left: 10 },
-      },
+      grid: { borderColor: gridColor(), strokeDashArray: 4, padding: { top: 0, right: 0, bottom: 0, left: 10 } },
       dataLabels: { enabled: false },
       tooltip: { theme: chartMode() },
-      xaxis: {
-        axisBorder: { show: false },
-        axisTicks: { show: false },
-        labels: { style: { colors: textColor(), fontFamily: "DM Sans" } },
-      },
-      yaxis: {
-        labels: { style: { colors: textColor(), fontFamily: "DM Sans" } },
-      },
-      legend: {
-        labels: { colors: textColor(), useSeriesColors: false },
-        fontFamily: "DM Sans",
-      },
+      xaxis: { axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { colors: textColor(), fontFamily: "DM Sans" } } },
+      yaxis: { labels: { style: { colors: textColor(), fontFamily: "DM Sans" } } },
+      legend: { labels: { colors: textColor(), useSeriesColors: false }, fontFamily: "DM Sans" },
     });
 
     // Monthly Bar Chart
     const monthlyData = chartsData?.monthlyBar || [];
-    const monthlyBarOpts = {
+    if (window.chartMonthlyBar) window.chartMonthlyBar.destroy();
+    window.chartMonthlyBar = new ApexCharts(document.querySelector("#monthlyBarChart"), {
       ...apexDefaults(),
       series: [{ name: "Expenses", data: monthlyData.map((d) => d.total) }],
-      chart: {
-        type: "bar",
-        height: 280,
-        parentHeightOffset: 0,
-        background: "transparent",
-        toolbar: { show: false },
-      },
-      plotOptions: { bar: { borderRadius: 4, columnWidth: "60%" } },
+      chart: { type: "bar", height: 280, parentHeightOffset: 0, background: "transparent", toolbar: { show: false } },
+      plotOptions: { bar: { borderRadius: 6, columnWidth: "55%" } },
       colors: [primaryColor()],
-      xaxis: {
-        ...apexDefaults().xaxis,
-        categories: monthlyData.map((d) => d.label),
-      },
-    };
-    if (window.chartMonthlyBar) window.chartMonthlyBar.destroy();
-    window.chartMonthlyBar = new ApexCharts(
-      document.querySelector("#monthlyBarChart"),
-      monthlyBarOpts,
-    );
+      xaxis: { ...apexDefaults().xaxis, categories: monthlyData.map((d) => d.label) },
+    });
     window.chartMonthlyBar.render();
 
     // Weekly Line Chart
     const weeklyData = chartsData?.weeklyLine || [];
-    const weeklyLineOpts = {
+    if (window.chartWeeklyLine) window.chartWeeklyLine.destroy();
+    window.chartWeeklyLine = new ApexCharts(document.querySelector("#weeklyLineChart"), {
       ...apexDefaults(),
       series: [
         { name: "This Week", data: weeklyData.map((d) => d.thisWeek) },
         { name: "Last Week", data: weeklyData.map((d) => d.lastWeek) },
       ],
-      chart: {
-        type: "area",
-        height: 280,
-        parentHeightOffset: 0,
-        background: "transparent",
-        toolbar: { show: false },
-      },
+      chart: { type: "area", height: 280, parentHeightOffset: 0, background: "transparent", toolbar: { show: false } },
       colors: [purpleColor(), cyanColor()],
-      fill: {
-        type: "gradient",
-        gradient: {
-          shadeIntensity: 1,
-          opacityFrom: 0.4,
-          opacityTo: 0.05,
-          stops: [0, 90, 100],
-        },
-      },
+      fill: { type: "gradient", gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 90, 100] } },
       stroke: { curve: "smooth", width: 2, dashArray: [0, 5] },
-      xaxis: {
-        ...apexDefaults().xaxis,
-        categories: weeklyData.map((d) => d.day),
-      },
-      legend: {
-        ...apexDefaults().legend,
-        position: "top",
-        horizontalAlign: "right",
-      },
-    };
-    if (window.chartWeeklyLine) window.chartWeeklyLine.destroy();
-    window.chartWeeklyLine = new ApexCharts(
-      document.querySelector("#weeklyLineChart"),
-      weeklyLineOpts,
-    );
+      xaxis: { ...apexDefaults().xaxis, categories: weeklyData.map((d) => d.day) },
+      legend: { ...apexDefaults().legend, position: "top", horizontalAlign: "right" },
+    });
     window.chartWeeklyLine.render();
 
     // Category Pie Chart
     const catData = AppData.categories || [];
-    const catPieOpts = {
+    if (window.chartCatPie) window.chartCatPie.destroy();
+    window.chartCatPie = new ApexCharts(document.querySelector("#categoryPieChart"), {
       ...apexDefaults(),
       series: catData.length > 0 ? catData.map((c) => c.spent || 0) : [1],
-      labels:
-        catData.length > 0
-          ? catData.map((c) => c.category || c.name)
-          : ["No Data"],
-      chart: {
-        type: "donut",
-        height: 280,
-        parentHeightOffset: 0,
-        background: "transparent",
-      },
+      labels: catData.length > 0 ? catData.map((c) => c.category || c.name) : ["No Data"],
+      chart: { type: "donut", height: 280, parentHeightOffset: 0, background: "transparent" },
       colors: getDonutColors(),
       stroke: { show: false },
       plotOptions: { pie: { donut: { size: "65%" } } },
       legend: { ...apexDefaults().legend, position: "right" },
-    };
-    if (window.chartCatPie) window.chartCatPie.destroy();
-    window.chartCatPie = new ApexCharts(
-      document.querySelector("#categoryPieChart"),
-      catPieOpts,
-    );
+    });
     window.chartCatPie.render();
 
     // Budget vs Expense Area Chart
     const incExpData = chartsData?.incExp || [];
-    const incExpChartOpts = {
+    if (window.chartIncExpArea) window.chartIncExpArea.destroy();
+    window.chartIncExpArea = new ApexCharts(document.querySelector("#incomeExpenseChart"), {
       ...apexDefaults(),
       series: [
-        { name: "Budget", data: incExpData.map((d) => d.budget) },
+        { name: "Budget",   data: incExpData.map((d) => d.budget) },
         { name: "Expenses", data: incExpData.map((d) => d.expense) },
       ],
-      chart: {
-        type: "area",
-        height: 280,
-        parentHeightOffset: 0,
-        background: "transparent",
-        toolbar: { show: false },
-      },
+      chart: { type: "area", height: 280, parentHeightOffset: 0, background: "transparent", toolbar: { show: false } },
       colors: [successColor(), purpleColor()],
-      fill: {
-        type: "gradient",
-        gradient: {
-          shadeIntensity: 1,
-          opacityFrom: 0.4,
-          opacityTo: 0.05,
-          stops: [0, 90, 100],
-        },
-      },
+      fill: { type: "gradient", gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 90, 100] } },
       stroke: { curve: "smooth", width: 2 },
-      xaxis: {
-        ...apexDefaults().xaxis,
-        categories: incExpData.map((d) => d.label),
-      },
-      legend: {
-        ...apexDefaults().legend,
-        position: "top",
-        horizontalAlign: "right",
-      },
-    };
-    if (window.chartIncExpArea) window.chartIncExpArea.destroy();
-    window.chartIncExpArea = new ApexCharts(
-      document.querySelector("#incomeExpenseChart"),
-      incExpChartOpts,
-    );
+      xaxis: { ...apexDefaults().xaxis, categories: incExpData.map((d) => d.label) },
+      legend: { ...apexDefaults().legend, position: "top", horizontalAlign: "right" },
+    });
     window.chartIncExpArea.render();
   }
 
@@ -619,91 +594,57 @@
   // Update charts on theme change
   function updateChartsTheme() {
     const mode = document.body.classList.contains("light-mode") ? "light" : "dark";
-    const gridClr = document.body.classList.contains("light-mode")
-      ? "rgba(0,0,0,0.06)"
-      : "rgba(255,255,255,0.06)";
-    const textClr = document.body.classList.contains("light-mode")
-      ? "#273F4F"
-      : "#D7D7D7";
-
+    const gridClr = document.body.classList.contains("light-mode") ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.06)";
+    const textClr = document.body.classList.contains("light-mode") ? "#273F4F" : "#D7D7D7";
     const primaryClr = "#FE7743";
     const successClr = "#2CB67D";
     const purpleClr = document.body.classList.contains("light-mode") ? "#8B5CF6" : "#B39DDB";
     const cyanClr = "#447D9B";
-
     const donutColors = document.body.classList.contains("light-mode")
       ? ["#FE7743", "#447D9B", "#8B5CF6", "#2CB67D", "#E84545", "#F59E0B"]
       : ["#FE7743", "#6BB5D4", "#B39DDB", "#2CB67D", "#F07070", "#FFCC80"];
 
     const updateOptions = {
-      theme: { mode: mode },
-      tooltip: { theme: mode },
-      grid: { borderColor: gridClr },
+      theme: { mode }, tooltip: { theme: mode }, grid: { borderColor: gridClr },
       xaxis: { labels: { style: { colors: textClr, fontFamily: "DM Sans" } } },
       yaxis: { labels: { style: { colors: textClr, fontFamily: "DM Sans" } } },
       legend: { labels: { colors: textClr }, fontFamily: "DM Sans" },
     };
 
-    if (window.chartMonthlyBar)
-      window.chartMonthlyBar.updateOptions({ ...updateOptions, colors: [primaryClr] });
-    if (window.chartWeeklyLine)
-      window.chartWeeklyLine.updateOptions({ ...updateOptions, colors: [purpleClr, cyanClr] });
-    if (window.chartIncExpArea)
-      window.chartIncExpArea.updateOptions({ ...updateOptions, colors: [successClr, purpleClr] });
-    if (window.chartCatPie)
-      window.chartCatPie.updateOptions({
-        theme: { mode: mode },
-        tooltip: { theme: mode },
-        legend: { labels: { colors: textClr }, fontFamily: "DM Sans" },
-        colors: donutColors
-      });
+    if (window.chartMonthlyBar)  window.chartMonthlyBar.updateOptions({ ...updateOptions, colors: [primaryClr] });
+    if (window.chartWeeklyLine)  window.chartWeeklyLine.updateOptions({ ...updateOptions, colors: [purpleClr, cyanClr] });
+    if (window.chartIncExpArea)  window.chartIncExpArea.updateOptions({ ...updateOptions, colors: [successClr, purpleClr] });
+    if (window.chartCatPie)      window.chartCatPie.updateOptions({ theme: { mode }, tooltip: { theme: mode }, legend: { labels: { colors: textClr }, fontFamily: "DM Sans" }, colors: donutColors });
   }
 
-  window.openQuickAddModal = function () {
-    window.openAddExpenseModal();
-  };
+  window.openQuickAddModal = function () { window.openAddExpenseModal(); };
 
-  window.addEventListener('expense-saved', async (e) => {
-    await initDashboard();
-  });
+  window.addEventListener('expense-saved', async (e) => { await initDashboard(); });
 
-  // Dashboard Filter Logic
-  const timeFilters = document.querySelectorAll(
-    "#dashboardTimeFilters .filter-tab",
-  );
+  // ── Dashboard Filter Logic ────────────────────────────────────────
+  const timeFilters = document.querySelectorAll("#dashboardTimeFilters .filter-tab");
   const customRange = document.getElementById("customDateRange");
 
   function getFilterDates(range) {
     const d = new Date();
     const end = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString();
     let start = new Date();
-
-    if (range === 'today') {
-      start.setHours(0, 0, 0, 0);
-    } else if (range === '7d') {
-      start.setDate(start.getDate() - 7);
-    } else if (range === '30d') {
-      start.setDate(start.getDate() - 30);
-    } else if (range === 'month') {
-      start = new Date(start.getFullYear(), start.getMonth(), 1);
-    }
-
-    return {
-      startDate: new Date(start.getTime() - (start.getTimezoneOffset() * 60000)).toISOString(),
-      endDate: end
-    };
+    if (range === 'today')   { start.setHours(0, 0, 0, 0); }
+    else if (range === '7d') { start.setDate(start.getDate() - 7); }
+    else if (range === '30d'){ start.setDate(start.getDate() - 30); }
+    else if (range === 'month') { start = new Date(start.getFullYear(), start.getMonth(), 1); }
+    return { startDate: new Date(start.getTime() - (start.getTimezoneOffset() * 60000)).toISOString(), endDate: end };
   }
 
   timeFilters.forEach((tab) => {
     tab.addEventListener("click", () => {
       timeFilters.forEach((t) => t.classList.remove("active"));
       tab.classList.add("active");
-
       if (tab.dataset.range === "custom") {
         customRange.style.opacity = "1";
         customRange.style.pointerEvents = "auto";
       } else {
-        customRange.style.opacity = "0.5";
+        customRange.style.opacity = "0.45";
         customRange.style.pointerEvents = "none";
         showToast(`Dashboard updated for: ${tab.innerText}`, "success");
         const dates = getFilterDates(tab.dataset.range);
@@ -712,63 +653,141 @@
     });
   });
 
-  document
-    .getElementById("applyFilterBtn")
-    .addEventListener("click", () => {
-      const start = document.getElementById("filterStartDate").value;
-      const end = document.getElementById("filterEndDate").value;
-      if (start && end) {
-        showToast(`Dashboard updated from ${start} to ${end}`, "success");
-        // API expects ISO strings
-        initDashboard(new Date(start).toISOString(), new Date(end).toISOString());
-      } else {
-        showToast("Please select both start and end dates", "error");
-      }
-    });
+  document.getElementById("applyFilterBtn").addEventListener("click", () => {
+    const start = document.getElementById("filterStartDate").value;
+    const end   = document.getElementById("filterEndDate").value;
+    if (start && end) {
+      showToast(`Dashboard updated from ${start} to ${end}`, "success");
+      initDashboard(new Date(start).toISOString(), new Date(end).toISOString());
+    } else {
+      showToast("Please select both start and end dates", "error");
+    }
+  });
 
-  // Render Recurring Widget
+  // ── Recurring Widget — Urgency Colour Logic ───────────────────────
+  /**
+   * Returns urgency level based on days until due.
+   * critical  ≤ 3 days
+   * warning   ≤ 7 days
+   * ok        > 7 days
+   */
+  function getUrgency(nextDueDate) {
+    if (!nextDueDate) return 'ok';
+    const today  = new Date(); today.setHours(0,0,0,0);
+    const due    = new Date(nextDueDate + 'T00:00:00');
+    const diffMs = due - today;
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays <= 3)  return 'critical';
+    if (diffDays <= 7)  return 'warning';
+    return 'ok';
+  }
+
+  function getDueLabel(nextDueDate) {
+    if (!nextDueDate) return 'N/A';
+    const today  = new Date(); today.setHours(0,0,0,0);
+    const due    = new Date(nextDueDate + 'T00:00:00');
+    const diffMs = due - today;
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays < 0)   return 'Overdue';
+    if (diffDays === 0) return 'Due Today';
+    if (diffDays === 1) return 'Tomorrow';
+    if (diffDays <= 7)  return `In ${diffDays}d`;
+    return due.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+
   async function renderRecurringWidget() {
-    const listEl = document.getElementById('recurringWidgetList');
+    const listEl  = document.getElementById('recurringWidgetList');
+    const wrapEl  = document.getElementById('recurringTableWrap');
+    const tbodyEl = document.getElementById('recurringTableBody');
     if (!listEl) return;
+
+    const emptyHtml = (msg, showCTA = false) => `
+      <div class="recurring-empty">
+        <svg class="recurring-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 8v4l3 3m6-4a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <p>${msg}</p>
+        ${showCTA ? '<a href="/expenses/" class="btn btn-sm btn-primary">Set Up Recurring</a>' : ''}
+      </div>`;
+
     try {
       const recRes = await Auth.apiFetch('/api/v1/recurring-expenses/?limit=50');
       let recData = [];
       if (recRes && recRes.success) {
         recData = recRes.data?.results || recRes.data || recRes.results || [];
       }
+
       if (!Array.isArray(recData) || recData.length === 0) {
-        listEl.innerHTML = '<div class="recurring-empty">No recurring expenses set up</div>';
+        wrapEl.style.display = 'none';
+        listEl.style.display = '';
+        listEl.innerHTML = emptyHtml('No recurring expenses set up yet.', true);
         return;
       }
-      // Sort by nextDueDate ascending, only show active
-      const active = recData.filter(r => r.isActive !== false).sort((a, b) => new Date(a.nextDueDate) - new Date(b.nextDueDate));
+
+      // Sort ascending by nextDueDate, active only
+      const active = recData
+        .filter(r => r.isActive !== false)
+        .sort((a, b) => new Date(a.nextDueDate) - new Date(b.nextDueDate));
+
       if (active.length === 0) {
-        listEl.innerHTML = '<div class="recurring-empty">No active recurring expenses</div>';
+        wrapEl.style.display = 'none';
+        listEl.style.display = '';
+        listEl.innerHTML = emptyHtml('No active recurring expenses.');
         return;
       }
-      listEl.innerHTML = active.slice(0, 5).map(r => `
-              <div class="recurring-widget-item">
-                <div class="recurring-item-info">
-                  <div class="recurring-item-title">${r.title}</div>
-                  <div class="recurring-item-meta">
-                    <span class="badge badge-cyan" style="font-size:10px;padding:1px 6px;">${r.frequencyDisplay || r.frequency}</span>
-                    <span>Due: ${r.nextDueDate ? new Date(r.nextDueDate + 'T00:00:00').toLocaleDateString() : 'N/A'}</span>
-                  </div>
-                </div>
-                <div class="recurring-item-amount">${Settings.formatCurrency(r.amount)}</div>
+
+      // Build table rows
+      tbodyEl.innerHTML = active.slice(0, 5).map(r => {
+        const urgency  = getUrgency(r.nextDueDate);
+        const dueLabel = getDueLabel(r.nextDueDate);
+        const initial  = (r.title || '?')[0].toUpperCase();
+
+        const dueDateStr = r.nextDueDate
+          ? new Date(r.nextDueDate + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+          : 'N/A';
+
+        const urgencyColors = {
+          critical: { row: 'rw-row-critical', dot: '#E84545', amtClass: 'amount-critical' },
+          warning:  { row: 'rw-row-warning',  dot: '#F59E0B', amtClass: 'amount-warning'  },
+          ok:       { row: 'rw-row-ok',       dot: '#2CB67D', amtClass: 'amount-ok'       },
+        };
+        const u = urgencyColors[urgency];
+
+        return `
+          <tr class="rw-row ${u.row}">
+            <td>
+              <div class="rw-name-cell">
+                <div class="rw-avatar icon-${urgency}">${initial}</div>
+                <span class="rw-title">${r.title}</span>
               </div>
-            `).join('');
+            </td>
+            <td>
+              <span class="badge badge-cyan" style="font-size:11px;">${r.frequencyDisplay || r.frequency || '—'}</span>
+            </td>
+            <td class="rw-date">${dueDateStr}</td>
+            <td>
+              <span class="recurring-due-badge badge-${urgency}">${dueLabel}</span>
+            </td>
+            <td style="text-align:right;">
+              <span class="rw-amount ${u.amtClass}">${Settings.formatCurrency(r.amount)}</span>
+            </td>
+          </tr>`;
+      }).join('');
+
+      // Show table, hide loader
+      listEl.style.display = 'none';
+      wrapEl.style.display  = 'block';
+
     } catch (e) {
       console.error('Failed to load recurring widget', e);
-      if (listEl) listEl.innerHTML = '<div class="recurring-empty">Could not load recurring data</div>';
+      wrapEl.style.display = 'none';
+      listEl.style.display = '';
+      listEl.innerHTML = emptyHtml('Could not load recurring data.');
     }
   }
   renderRecurringWidget();
 
-  // Listen to AI budget/expense changes and refresh the dashboard data
-  window.addEventListener('ai:finance:changed', (e) => {
-    initDashboard();
-  });
+  // Listen to AI budget/expense changes and refresh dashboard
+  window.addEventListener('ai:finance:changed', () => { initDashboard(); });
 </script>
-
 {% endblock %}

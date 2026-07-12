@@ -4,6 +4,47 @@
 {% block page_title %}Expenses{% endblock %}
 {% block page_subtitle %}Track and manage all your spending{% endblock %}
 
+{% block extra_head %}
+<style>
+  .total-spent-badge {
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: var(--kpi-red-bg);
+    color: var(--accent-danger);
+    border: 1px solid rgba(232, 69, 69, 0.15);
+    font-weight: 700;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 1px 2px rgba(232, 69, 69, 0.05);
+  }
+  body:not(.light-mode) .total-spent-badge {
+    background: rgba(240, 112, 112, 0.08);
+    border-color: rgba(240, 112, 112, 0.15);
+  }
+  .view-all-toggle-btn {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .view-all-toggle-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+  }
+</style>
+{% endblock %}
+
 
 
 {% block content %}
@@ -227,9 +268,17 @@
 
   <!-- EXPENSE HISTORY PANEL -->
   <div class="history-container fade-in">
-    <div class="card-header">
-      <div class="card-title" id="historyTitle">Expense History</div>
-      <div style="font-size: 13px; color: var(--text-secondary);" id="expenseCount">0 expenses</div>
+    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+      <div>
+        <div class="card-title" id="historyTitle">Expense History</div>
+        <div style="font-size: 12px; color: var(--text-secondary);" id="expenseCount">0 expenses</div>
+      </div>
+      <div class="history-header-actions">
+        <span class="total-spent-badge">Total Spent: <span id="historyTotalSpent">₹0</span></span>
+        <button class="view-all-toggle-btn" id="viewAllToggleBtn" onclick="toggleViewAllMode()">
+          <i class="ph ph-arrows-out"></i> View All
+        </button>
+      </div>
     </div>
 
     <!-- Desktop Table -->
@@ -660,11 +709,57 @@
     }).sort((a, b) => new Date(b.expenseDate || b.date) - new Date(a.expenseDate || a.date));
   }
 
+  let viewAllMode = false;
+
+  window.toggleViewAllMode = function() {
+    viewAllMode = !viewAllMode;
+    const btn = document.getElementById('viewAllToggleBtn');
+    
+    if (viewAllMode) {
+      btn.innerHTML = '<i class="ph ph-arrows-in"></i> Show Less';
+      // Hide other sections of the dashboard to focus entirely on the ledger table
+      const topKpi = document.querySelector('.budgets-header');
+      if (topKpi) topKpi.style.display = 'none';
+      const topGrid = document.querySelector('.budget-kpi-grid');
+      if (topGrid) topGrid.style.display = 'none';
+      const savings = document.getElementById('kpiSavings');
+      if (savings) savings.style.display = 'none';
+      const premGrid = document.querySelector('.premium-grid');
+      if (premGrid) premGrid.style.display = 'none';
+      
+      document.getElementById('expensePagination').style.display = 'none';
+    } else {
+      btn.innerHTML = '<i class="ph ph-arrows-out"></i> View All';
+      // Restore visible sections — remove inline display so CSS rules apply
+      const topKpi = document.querySelector('.budgets-header');
+      if (topKpi) topKpi.style.display = '';
+      const topGrid = document.querySelector('.budget-kpi-grid');
+      if (topGrid) topGrid.style.display = '';
+      const savings = document.getElementById('kpiSavings');
+      if (savings) savings.style.display = '';
+      const premGrid = document.querySelector('.premium-grid');
+      if (premGrid) premGrid.style.display = '';
+
+      document.getElementById('expensePagination').style.display = '';
+    }
+    currentPage = 1;
+    renderExpenses();
+  };
+
   function renderExpenses() {
     const filtered = getFilteredExpenses();
-    const totalPages = Math.ceil(filtered.length / perPage);
-    const start = (currentPage - 1) * perPage;
-    const pageData = filtered.slice(start, start + perPage);
+
+    // Calculate total spent for the current filter set
+    const totalSpent = filtered.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+    const totalSpentEl = document.getElementById('historyTotalSpent');
+    if (totalSpentEl) {
+      totalSpentEl.textContent = formatINR(totalSpent);
+    }
+
+    const limit = viewAllMode ? filtered.length : perPage;
+    const totalPages = Math.ceil(filtered.length / limit) || 1;
+    const start = viewAllMode ? 0 : (currentPage - 1) * perPage;
+    const pageData = filtered.slice(start, start + limit);
 
     document.getElementById('expenseCount').textContent = `${filtered.length} expenses`;
 

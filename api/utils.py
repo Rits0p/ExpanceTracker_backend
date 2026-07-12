@@ -8,6 +8,7 @@ from rest_framework import status
 import math
 from datetime import datetime, timedelta
 from django.utils import timezone
+from django.conf import settings
 
 
 # ───── Custom Exception Handler ─────
@@ -151,6 +152,33 @@ def calc_growth(current, previous):
     if previous == 0:
         return 100.0 if current > 0 else 0.0
     return round(((current - previous) / previous) * 100, 2)
+
+
+def get_pagination_params(query_params, default_limit=None):
+    """Parse and validate pagination parameters from query string.
+
+    Enforces PAGINATION_MAX_LIMIT from settings to prevent clients from
+    requesting unbounded result sets.
+
+    Returns:
+        tuple: (page, limit) as integers
+    """
+    max_limit = getattr(settings, 'PAGINATION_MAX_LIMIT', 100)
+    if default_limit is None:
+        default_limit = getattr(settings, 'PAGINATION_DEFAULT_LIMIT', 20)
+
+    try:
+        page = max(1, int(query_params.get('page', 1)))
+    except (TypeError, ValueError):
+        page = 1
+
+    try:
+        limit = int(query_params.get('limit', default_limit))
+    except (TypeError, ValueError):
+        limit = default_limit
+
+    limit = max(1, min(limit, max_limit))
+    return page, limit
 
 
 def _add_months(source_date, months):

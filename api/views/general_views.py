@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from ..models import Category, Budget, Expense, Report, UserSettings
 from ..serializers import CategorySerializer, BudgetSerializer, ReportSerializer, UserSettingsSerializer
-from ..utils import ApiResponse, get_start_of_month, get_end_of_month
+from ..utils import ApiResponse, get_start_of_month, get_end_of_month, get_pagination_params
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 
@@ -26,9 +26,15 @@ class CategoryListCreateView(APIView):
        POST /api/v1/categories/ — create new category"""
 
     def get(self, request):
+        page, limit = get_pagination_params(request.query_params)
+
         categories = Category.objects.filter(user=request.user).order_by('name')
-        serializer = CategorySerializer(categories, many=True)
-        return ApiResponse.success(serializer.data)
+        total = categories.count()
+        offset = (page - 1) * limit
+        paginated = categories[offset:offset + limit]
+
+        serializer = CategorySerializer(paginated, many=True)
+        return ApiResponse.paginated(serializer.data, page, limit, total)
 
     def post(self, request):
         name = request.data.get('name', '').strip()
@@ -165,9 +171,15 @@ class BudgetGetAllView(APIView):
     """GET /api/v1/budget/all — list all budgets"""
 
     def get(self, request):
-        budgets = Budget.objects.filter(user=request.user)
-        serializer = BudgetSerializer(budgets, many=True)
-        return ApiResponse.success(serializer.data)
+        page, limit = get_pagination_params(request.query_params)
+
+        budgets = Budget.objects.filter(user=request.user).order_by('-year', '-month')
+        total = budgets.count()
+        offset = (page - 1) * limit
+        paginated = budgets[offset:offset + limit]
+
+        serializer = BudgetSerializer(paginated, many=True)
+        return ApiResponse.paginated(serializer.data, page, limit, total)
 
 
 class BudgetWarningsView(APIView):
@@ -364,8 +376,7 @@ class ReportHistoryView(APIView):
     """GET /api/v1/reports/history — paginated report history"""
 
     def get(self, request):
-        page = int(request.query_params.get('page', 1))
-        limit = int(request.query_params.get('limit', 10))
+        page, limit = get_pagination_params(request.query_params)
 
         queryset = Report.objects.filter(user=request.user).order_by('-created_at')
         total = queryset.count()

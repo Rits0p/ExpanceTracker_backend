@@ -304,12 +304,23 @@ const API = {
       queryParams = `?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
     }
 
+    let m = new Date().getMonth() + 1;
+    let y = new Date().getFullYear();
+    if (startDate) {
+      const parsed = new Date(startDate);
+      if (!isNaN(parsed)) {
+        m = parsed.getMonth() + 1;
+        y = parsed.getFullYear();
+      }
+    }
+
     // Fetch multiple endpoints simultaneously
-    const [kpisRes, expensesRes, categoriesRes, budgetRes] = await Promise.all([
+    const [kpisRes, expensesRes, categoriesRes, budgetRes, budgetDetailRes] = await Promise.all([
       Auth.apiFetch(`/api/v1/analytics/kpis${queryParams}`),
       Auth.apiFetch(`/api/v1/expenses/?limit=10${startDate ? `&startDate=${startDate}&endDate=${endDate}` : ''}`),
       Auth.apiFetch(`/api/v1/analytics/categories${queryParams}`),
-      Auth.apiFetch('/api/v1/budget/warnings')
+      Auth.apiFetch('/api/v1/budget/warnings'),
+      Auth.apiFetch(`/api/v1/budget?month=${m}&year=${y}`).catch(() => null)
     ]);
 
     if (kpisRes && kpisRes.success) {
@@ -323,6 +334,11 @@ const API = {
     }
     if (budgetRes && budgetRes.success) {
       AppData.budget = budgetRes.data;
+    }
+    if (budgetDetailRes && budgetDetailRes.success) {
+      AppData.budgetDetail = budgetDetailRes.data;
+    } else {
+      AppData.budgetDetail = null;
     }
 
     return true;

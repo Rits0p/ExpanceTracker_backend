@@ -11,7 +11,7 @@ from django_filters import rest_framework as filters
 
 from ..models import RecurringExpense
 from ..serializers import RecurringExpenseSerializer
-from ..utils import ApiResponse
+from ..utils import ApiResponse, get_pagination_params
 
 
 class RecurringExpenseFilter(filters.FilterSet):
@@ -50,8 +50,7 @@ class RecurringExpenseViewSet(viewsets.ModelViewSet):
         ).select_related('category')
 
     def list(self, request, *args, **kwargs):
-        page = int(request.query_params.get('page', 1))
-        limit = int(request.query_params.get('limit', 10))
+        page, limit = get_pagination_params(request.query_params)
 
         queryset = self.filter_queryset(self.get_queryset())
         total = queryset.count()
