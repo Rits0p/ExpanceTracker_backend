@@ -3,7 +3,7 @@ Views for ExpenseIQ API — Analytics endpoints.
 Mirrors: /api/v1/analytics/*
 """
 from rest_framework.views import APIView
-from django.db.models import Sum, Count, Avg
+from django.db.models import Q, Sum, Count, Avg
 from django.db.models.functions import ExtractMonth, ExtractYear, ExtractWeekDay
 from django.utils import timezone
 from datetime import datetime, timedelta, timezone as dt_timezone
@@ -18,11 +18,19 @@ from ..utils import (
 )
 
 
-def _sum_expenses(user, start, end):
-    """Sum expenses in a date range."""
-    result = Expense.objects.filter(
+def _sum_expenses(user, start, end, target_frequency=None):
+    """Sum expenses in a date range, applying recurring expense rules."""
+    qs = Expense.objects.filter(
         user=user, expense_date__gte=start, expense_date__lte=end
-    ).aggregate(total=Sum('amount'), count=Count('id'))
+    )
+    if target_frequency:
+        qs = qs.filter(
+            Q(is_recurring=False) | Q(is_recurring=True, recurring_type=target_frequency)
+        )
+    else:
+        qs = qs.filter(is_recurring=False)
+        
+    result = qs.aggregate(total=Sum('amount'), count=Count('id'))
     return {
         'total': float(result['total'] or 0),
         'count': result['count'] or 0,
@@ -162,8 +170,8 @@ class AnalyticsKPIsView(APIView):
             cat_sum = Category.objects.filter(user=request.user).aggregate(s=Sum('monthly_budget'))['s']
             total_budget = float(cat_sum or 0)
 
-        monthly_exp = _sum_expenses(request.user, month_start, month_end)
-        weekly_exp = _sum_expenses(request.user, week_start, week_end)
+        monthly_exp = _sum_expenses(request.user, month_start, month_end, target_frequency='monthly')
+        weekly_exp = _sum_expenses(request.user, week_start, week_end, target_frequency='weekly')
         category_data = _group_expenses_by_category(request.user, month_start, month_end)
 
         # Top expense this month
@@ -205,8 +213,8 @@ class AnalyticsWeeklyView(APIView):
         this_week_end = get_end_of_week(now)
         prev_start, prev_end = get_previous_week_range()
 
-        current = _sum_expenses(request.user, this_week_start, this_week_end)
-        previous = _sum_expenses(request.user, prev_start, prev_end)
+        current = _sum_expenses(request.user, this_week_start, this_week_end, target_frequency='weekly')
+        previous = _sum_expenses(request.user, prev_start, prev_end, target_frequency='weekly')
         daily_trend = _daily_trend_for_week(request.user, this_week_start, this_week_end)
 
         return ApiResponse.success({
@@ -227,8 +235,8 @@ class AnalyticsMonthlyView(APIView):
         this_month_end = get_end_of_month(now)
         prev_start, prev_end = get_previous_month_range()
 
-        current = _sum_expenses(request.user, this_month_start, this_month_end)
-        previous = _sum_expenses(request.user, prev_start, prev_end)
+        current = _sum_expenses(request.user, this_month_start, this_month_end, target_frequency='monthly')
+        previous = _sum_expenses(request.user, prev_start, prev_end, target_frequency='monthly')
         trend = _monthly_expense_trend(request.user, 6)
 
         return ApiResponse.success({

@@ -5,6 +5,7 @@
 {% block page_subtitle %}Track and manage all your spending{% endblock %}
 
 
+
 {% block content %}
 <div class="page fade-in">
 
@@ -265,133 +266,8 @@
 <button class="fab" onclick="openModal('expenseFormModal')">+</button>
 
 <!-- ADD/EDIT EXPENSE MODAL -->
-<div class="modal-overlay" id="expenseFormModal">
-  <div class="modal" style="max-width: 600px;">
-    <div class="modal-header">
-      <h2 class="modal-title" id="modalTitle">Add Expense</h2>
-      <button class="modal-close" onclick="closeModal('expenseFormModal')">✕</button>
-    </div>
-    <form id="expenseForm" novalidate>
-      <input type="hidden" id="fId">
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label">Title *</label>
-          <input type="text" class="form-input" placeholder="e.g. Grocery" id="fTitle" required>
-          <div class="form-error" id="errTitle"></div>
-        </div>
-        <div class="form-group">
-          <label class="form-label" id="amountLabel">Amount (₹) *</label>
-          <input type="number" class="form-input" placeholder="0.00" id="fAmount" required min="0.01" step="0.01">
-          <div class="form-error" id="errAmount"></div>
-        </div>
-      </div>
+{% include 'partials/expense_form_modal.html' %}
 
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label">Category *</label>
-          <select class="form-select" id="fCategory" required>
-            <option value="">Select category</option>
-          </select>
-          <div class="form-error" id="errCategory"></div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Payment Method</label>
-          <select class="form-select" id="fMethod">
-            <option value="Cash" selected>💵 Cash</option>
-            <option value="Credit Card">💳 Credit Card</option>
-            <option value="Debit Card">💳 Debit Card</option>
-            <option value="Bank Transfer">🏦 Bank Transfer</option>
-            <option value="UPI">📱 UPI</option>
-            <option value="Digital Wallet">👛 Digital Wallet</option>
-            <option value="Net Banking">💻 Net Banking</option>
-            <option value="Cheque">📄 Cheque</option>
-            <option value="EMI">🔄 EMI</option>
-            <option value="Gift Card">🎁 Gift Card</option>
-            <option value="Other">❓ Other</option>
-          </select>
-          <input type="text" class="form-input" id="fOtherMethod" placeholder="Please specify"
-            style="display: none; margin-top: 8px;">
-        </div>
-      </div>
-
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label">Date & Time *</label>
-          <input type="datetime-local" class="form-input" id="fDate" required>
-          <div class="form-error" id="errDate"></div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Notes</label>
-          <input type="text" class="form-input" placeholder="Optional notes" id="fNotes">
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Receipt Image</label>
-        <div class="upload-area" id="uploadArea">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40"
-            style="margin:0 auto 12px;display:block;color:var(--text-muted)">
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-            <polyline points="17 8 12 3 7 8" />
-            <line x1="12" y1="3" x2="12" y2="15" />
-          </svg>
-          <div style="font-size:14px;color:var(--text-secondary)">Drag & drop receipt or <span
-              style="color:var(--accent-emerald);cursor:pointer">browse</span></div>
-          <div style="font-size:12px;color:var(--text-muted);margin-top:4px">PNG, JPG up to 5MB</div>
-          <input type="file" accept="image/*" id="fReceipt" style="display:none">
-        </div>
-        <div id="receiptPreview" style="margin-top:8px;display:none">
-          <img id="receiptImg"
-            style="max-width:120px;border-radius:var(--radius-sm);border:1px solid var(--glass-border)">
-        </div>
-      </div>
-      <div class="form-group" style="display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;" id="recurringToggleContainer">
-        <div class="toggle" id="recurringToggle"></div>
-        <span style="font-size:14px">Recurring expense</span>
-      </div>
-
-      <input type="hidden" id="fRecurringExpenseId">
-
-      <div id="recurringOptions"
-        style="display:none;margin-top:12px;padding:16px;border:1px solid var(--border-color);border-radius:12px;background:var(--bg-page);">
-        <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:12px;">Recurring Options
-        </div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label class="form-label">Frequency *</label>
-            <select class="form-select" id="fRecurringFrequency">
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly" selected>Monthly</option>
-              <option value="quarterly">Quarterly</option>
-              <option value="yearly">Yearly</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Start Date *</label>
-            <input type="date" class="form-input" id="fRecurringStart">
-          </div>
-        </div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label class="form-label">End Date</label>
-            <input type="date" class="form-input" id="fRecurringEnd">
-            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Leave empty for no end date</div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Recurring Notes</label>
-            <input type="text" class="form-input" placeholder="e.g. Monthly subscription" id="fRecurringNotes">
-          </div>
-        </div>
-      </div>
-
-      <div style="display: flex; gap: 12px; margin-top: 24px;">
-        <button type="submit" class="btn btn-primary" style="flex: 1;">Save Expense</button>
-        <button type="button" class="btn btn-secondary" onclick="closeModal('expenseFormModal')">Cancel</button>
-      </div>
-    </form>
-  </div>
-</div>
 
 <!-- BUDGET MODAL -->
 <div class="modal-overlay" id="budgetModal">
@@ -533,45 +409,65 @@
     let monthlySpent = 0;
     let yearlySpent = 0;
 
-    if (selectedDate) {
-      // Show that specific day's spending for ALL cards
-      const dayTotal = expenses.filter(exp => getDateStrings(new Date(exp.expenseDate || exp.date)) === selectedDate)
-        .reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
-      dailySpent = dayTotal;
-      weeklySpent = dayTotal;
-      monthlySpent = dayTotal;
-      yearlySpent = dayTotal;
-    } else {
-      // Show running totals for current periods
-      const todayStr = getDateStrings(now);
+    const todayStr = getDateStrings(now);
 
-      const dayOfWeek = now.getDay();
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - dayOfWeek);
-      startOfWeek.setHours(0, 0, 0, 0);
+    const dayOfWeek = now.getDay();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - dayOfWeek);
+    startOfWeek.setHours(0, 0, 0, 0);
 
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 6);
-      endOfWeek.setHours(23, 59, 59, 999);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
 
-      expenses.forEach(exp => {
-        const expDate = new Date(exp.expenseDate || exp.date);
-        const expDateStr = getDateStrings(expDate);
-        const amount = parseFloat(exp.amount);
+    expenses.forEach(exp => {
+      const expDate = new Date(exp.expenseDate || exp.date);
+      const expDateStr = getDateStrings(expDate);
+      const amount = parseFloat(exp.amount) || 0;
 
-        // Daily
-        if (expDateStr === todayStr) dailySpent += amount;
+      const isRecur = !!(exp.isRecurring || exp.recurringExpenseDetail);
+      const freq = (exp.recurringType || exp.recurringExpenseDetail?.frequency || '').toLowerCase();
 
-        // Weekly
-        if (expDate >= startOfWeek && expDate <= endOfWeek) weeklySpent += amount;
+      // Check date matches for each KPI
+      let matchesDaily = false;
+      let matchesWeekly = false;
+      let matchesMonthly = false;
+      let matchesYearly = false;
 
-        // Monthly
-        if (expDate.getMonth() === now.getMonth() && expDate.getFullYear() === now.getFullYear()) monthlySpent += amount;
+      if (selectedDate) {
+        // If a specific day is selected, all KPIs filter on that specific day
+        const isSameDay = (expDateStr === selectedDate);
+        matchesDaily = isSameDay;
+        matchesWeekly = isSameDay;
+        matchesMonthly = isSameDay;
+        matchesYearly = isSameDay;
+      } else {
+        // Normal running totals
+        matchesDaily = (expDateStr === todayStr);
+        matchesWeekly = (expDate >= startOfWeek && expDate <= endOfWeek);
+        matchesMonthly = (expDate.getMonth() === now.getMonth() && expDate.getFullYear() === now.getFullYear());
+        matchesYearly = (expDate.getFullYear() === now.getFullYear());
+      }
 
-        // Yearly
-        if (expDate.getFullYear() === now.getFullYear()) yearlySpent += amount;
-      });
-    }
+      if (isRecur) {
+        // Recurring expense: count ONLY in the KPI matching its recurrence frequency
+        if (freq === 'daily' && matchesDaily) {
+          dailySpent += amount;
+        } else if (freq === 'weekly' && matchesWeekly) {
+          weeklySpent += amount;
+        } else if (freq === 'monthly' && matchesMonthly) {
+          monthlySpent += amount;
+        } else if (freq === 'yearly' && matchesYearly) {
+          yearlySpent += amount;
+        }
+      } else {
+        // Non-recurring expense: include in all matching KPI totals (cascades)
+        if (matchesDaily) dailySpent += amount;
+        if (matchesWeekly) weeklySpent += amount;
+        if (matchesMonthly) monthlySpent += amount;
+        if (matchesYearly) yearlySpent += amount;
+      }
+    });
 
     // Calculate Savings
     let savingsAmt = 0;
@@ -579,9 +475,7 @@
 
     if (selectedDate) {
       // Daily savings for the clicked day
-      const dayTotal = expenses.filter(exp => getDateStrings(new Date(exp.expenseDate || exp.date)) === selectedDate)
-        .reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
-      savingsAmt = Math.max(0, budgets.daily - dayTotal);
+      savingsAmt = Math.max(0, budgets.daily - dailySpent);
       savingsPct = budgets.daily ? Math.round((savingsAmt / budgets.daily) * 100) : 0;
       document.getElementById('savingsContext').textContent = 'This Day';
     } else {
@@ -1097,291 +991,24 @@
     renderCategoryBudgets();
   }
 
-  // Form Handling
-  const form = document.getElementById('expenseForm');
-
-  function setLocalDatetime() {
-    const tzOffset = (new Date()).getTimezoneOffset() * 60000;
-    return (new Date(Date.now() - tzOffset)).toISOString().slice(0, 16);
-  }
-
-  const fMethodSelect = document.getElementById('fMethod');
-  const fOtherMethodInput = document.getElementById('fOtherMethod');
-  if (fMethodSelect && fOtherMethodInput) {
-    fMethodSelect.addEventListener('change', (e) => {
-      if (e.target.value === 'Other') {
-        fOtherMethodInput.style.display = 'block';
-        fOtherMethodInput.required = true;
-      } else {
-        fOtherMethodInput.style.display = 'none';
-        fOtherMethodInput.required = false;
-        fOtherMethodInput.value = '';
-      }
-    });
-  }
-
-  // Upload area events
-  const uploadArea = document.getElementById('uploadArea');
-  const fileInput = document.getElementById('fReceipt');
-  if (uploadArea && fileInput) {
-    uploadArea.addEventListener('click', () => fileInput.click());
-    uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
-    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
-    uploadArea.addEventListener('drop', e => { e.preventDefault(); uploadArea.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); });
-    fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
-  }
-
-  function handleFile(file) {
-    if (!file || !file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-      document.getElementById('receiptImg').src = e.target.result;
-      document.getElementById('receiptPreview').style.display = 'block';
-    };
-    reader.readAsDataURL(file);
-  }
-
-  // Toggle
-  const recurringToggle = document.getElementById('recurringToggle');
-  const recurringToggleContainer = document.getElementById('recurringToggleContainer');
-  const recurringOptions = document.getElementById('recurringOptions');
-
-  function showRecurringOptions() {
-    if (recurringOptions) recurringOptions.style.display = 'block';
-    if (!document.getElementById('fRecurringStart').value) {
-      const today = new Date();
-      const ymd = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
-      document.getElementById('fRecurringStart').value = ymd;
-    }
-  }
-
-  function hideRecurringOptions() {
-    if (recurringOptions) recurringOptions.style.display = 'none';
-  }
-
-  if (recurringToggle && recurringToggleContainer) {
-    recurringToggleContainer.addEventListener('click', function () {
-      recurringToggle.classList.toggle('active');
-      if (recurringToggle.classList.contains('active')) {
-        showRecurringOptions();
-      } else {
-        hideRecurringOptions();
-      }
-    });
-  }
-
-  form.addEventListener('submit', async function (e) {
-    e.preventDefault();
-
-    const id = document.getElementById('fId').value;
-    const title = document.getElementById('fTitle').value;
-    const amount = document.getElementById('fAmount').value;
-    const category = document.getElementById('fCategory').value;
-    const date = document.getElementById('fDate').value;
-    let method = document.getElementById('fMethod').value;
-    if (method === 'Other') {
-      const otherVal = document.getElementById('fOtherMethod').value.trim();
-      if (otherVal) method = otherVal;
-    }
-    const notes = document.getElementById('fNotes').value;
-
-    // Validation
-    let valid = true;
-    if (!title) { document.getElementById('errTitle').textContent = 'Required'; valid = false; }
-    else document.getElementById('errTitle').textContent = '';
-
-    if (!amount || amount <= 0) { document.getElementById('errAmount').textContent = 'Required > 0'; valid = false; }
-    else document.getElementById('errAmount').textContent = '';
-
-    if (!category) { document.getElementById('errCategory').textContent = 'Required'; valid = false; }
-    else document.getElementById('errCategory').textContent = '';
-
-    if (!date) { document.getElementById('errDate').textContent = 'Required'; valid = false; }
-    else document.getElementById('errDate').textContent = '';
-
-    if (!valid) return;
-
-    const submitBtn = this.querySelector('button[type="submit"]');
-    const originalBtnText = submitBtn.textContent;
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Saving...';
-
-    try {
-      // Handle recurring expense creation/update
-      let recurringId = document.getElementById('fRecurringExpenseId').value;
-      const isRecurringActive = recurringToggle && recurringToggle.classList.contains('active');
-
-      if (isRecurringActive) {
-        const freq = document.getElementById('fRecurringFrequency').value;
-        const startDate = document.getElementById('fRecurringStart').value;
-        const endDate = document.getElementById('fRecurringEnd').value;
-        const recNotes = document.getElementById('fRecurringNotes').value;
-
-        if (!startDate) {
-          document.getElementById('fRecurringStart').focus();
-          showToast('Please select a start date for recurring expense', 'error');
-          submitBtn.disabled = false;
-          submitBtn.textContent = originalBtnText;
-          return;
-        }
-
-        const catObj = categories.find(c => c.name === category);
-        const categoryId = catObj ? catObj.id : null;
-
-        const recPayload = {
-          title: title.trim(),
-          amount: parseFloat(amount),
-          category: categoryId,
-          frequency: freq,
-          startDate: startDate,
-          notes: recNotes || '',
-        };
-        if (endDate) recPayload.endDate = endDate;
-
-        if (recurringId) {
-          const recRes = await Auth.apiFetch(`/api/v1/recurring-expenses/${recurringId}/`, {
-            method: 'PUT',
-            body: JSON.stringify(recPayload),
-          });
-          if (recRes && recRes.success) {
-            recurringId = recRes.data?.id || recRes.data?._id || recurringId;
-            // Update local state
-            const idx = recurringExpenses.findIndex(r => r.id == recurringId);
-            if (idx >= 0) recurringExpenses[idx] = recRes.data;
-          }
-        } else {
-          const recRes = await Auth.apiFetch('/api/v1/recurring-expenses/', {
-            method: 'POST',
-            body: JSON.stringify(recPayload),
-          });
-          if (recRes && recRes.success) {
-            recurringId = recRes.data?.id || recRes.data?._id;
-            if (recRes.data) recurringExpenses.push(recRes.data);
-          } else {
-            const errMsg = recRes?.message || 'Failed to create recurring expense';
-            showToast(errMsg, 'error');
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalBtnText;
-            return;
-          }
-        }
-      }
-
-      const formData = new FormData();
-      formData.append('title', title.trim());
-      formData.append('amount', parseFloat(amount));
-      formData.append('category', category);
-      formData.append('expenseDate', new Date(date).toISOString());
-      formData.append('paymentMethod', method || 'Cash');
-      formData.append('notes', notes || '');
-      formData.append('isRecurring', isRecurringActive);
-      formData.append('tags', JSON.stringify([]));
-
-      if (isRecurringActive) {
-        const freq = document.getElementById('fRecurringFrequency').value;
-        formData.append('recurringType', freq);
-        if (recurringId) {
-          formData.append('recurringExpense', recurringId);
-        }
-      }
-
-      if (fileInput && fileInput.files && fileInput.files[0]) {
-        formData.append('receiptImage', fileInput.files[0]);
-      }
-
-      const url = id ? `/api/v1/expenses/${id}/` : '/api/v1/expenses/';
-      const methodType = id ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method: methodType,
-        body: formData,
-        credentials: 'same-origin',
-        headers: {
-          'X-CSRFToken': Auth.getCSRFToken()
-        }
-      });
-
-      if (response.ok) {
-        showToast(`Expense ${id ? 'updated' : 'added'} successfully!`);
-        window.dispatchEvent(new CustomEvent('ai:finance:changed', {
-          detail: { action: 'expense_changed', record: { id, category, amount: parseFloat(amount) } }
-        }));
-        closeModal('expenseFormModal');
-        this.reset();
-        document.getElementById('fDate').value = setLocalDatetime();
-        if (document.getElementById('receiptPreview')) {
-          document.getElementById('receiptPreview').style.display = 'none';
-        }
-        if (recurringToggle) recurringToggle.classList.remove('active');
-        hideRecurringOptions();
-
-        // Refresh
-        const res = await Auth.apiFetch('/api/v1/expenses/?limit=1000');
-        if (res && res.success) {
-          AppData.expenses = res.data.results || res.data;
-          expenses = [...AppData.expenses];
-          updateBudgetsAndKPIs();
-          renderCalendar();
-          renderExpenses();
-          renderCategoryBudgets();
-        }
-      } else {
-        let errorMsg = 'Failed to save expense';
-        try {
-          const errorData = await response.json();
-          errorMsg = errorData.message || errorData.detail || errorMsg;
-        } catch (e) { }
-        showToast(errorMsg, 'error');
-      }
-    } catch (error) {
-      showToast('Error saving expense: ' + error.message, 'error');
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = originalBtnText;
+  // Form Handling delegates to shared partial
+  window.addEventListener('expense-saved', async (e) => {
+    // Refresh
+    const res = await Auth.apiFetch('/api/v1/expenses/?limit=1000');
+    if (res && res.success) {
+      AppData.expenses = res.data.results || res.data;
+      expenses = [...AppData.expenses];
+      updateBudgetsAndKPIs();
+      renderCalendar();
+      renderExpenses();
+      renderCategoryBudgets();
     }
   });
 
   function editExpense(id) {
     const exp = expenses.find(e => e.id === id);
     if (!exp) return;
-
-    document.getElementById('modalTitle').textContent = 'Edit Expense';
-    document.getElementById('fId').value = exp.id;
-    document.getElementById('fTitle').value = exp.title;
-    document.getElementById('fAmount').value = exp.amount;
-    document.getElementById('fCategory').value = exp.category;
-
-    // Format date for datetime-local
-    const d = new Date(exp.expenseDate || exp.date);
-    const tzOffset = d.getTimezoneOffset() * 60000;
-    const localISO = new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
-    document.getElementById('fDate').value = localISO;
-
-    document.getElementById('fMethod').value = exp.paymentMethod || exp.method || 'Credit Card';
-    document.getElementById('fNotes').value = exp.notes || '';
-
-    if (recurringToggle) {
-      const hasRecurDetail = exp.recurringExpenseDetail != null;
-      if (hasRecurDetail || exp.isRecurring) {
-        recurringToggle.classList.add('active');
-        showRecurringOptions();
-        const rd = exp.recurringExpenseDetail;
-        if (rd) {
-          document.getElementById('fRecurringExpenseId').value = rd.id || '';
-          document.getElementById('fRecurringFrequency').value = rd.frequency || 'monthly';
-          document.getElementById('fRecurringStart').value = rd.startDate || '';
-          document.getElementById('fRecurringEnd').value = rd.endDate || '';
-          document.getElementById('fRecurringNotes').value = rd.notes || '';
-        } else {
-          document.getElementById('fRecurringFrequency').value = exp.recurringType || 'monthly';
-        }
-      } else {
-        recurringToggle.classList.remove('active');
-        hideRecurringOptions();
-      }
-    }
-
-    openModal('expenseFormModal');
+    window.populateExpenseForm(exp);
   }
 
   async function deleteExpense(id) {
@@ -1523,24 +1150,12 @@
 
   // Reset Modal on Open for Add
   window.openModal = function (id) {
-    if (id === 'expenseFormModal' && !document.getElementById('fId').value) {
-      document.getElementById('modalTitle').textContent = 'Add Expense';
-      form.reset();
-      document.getElementById('fDate').value = setLocalDatetime();
-      if (recurringToggle) {
-        recurringToggle.classList.remove('active');
-        hideRecurringOptions();
-      }
-      document.getElementById('fRecurringExpenseId').value = '';
-      if (document.getElementById('receiptPreview')) {
-        document.getElementById('receiptPreview').style.display = 'none';
-      }
-
-      // If a date is selected in calendar, use that date
-      if (selectedDate) {
-        const now = new Date();
-        const timeStr = now.toTimeString().slice(0, 5);
-        document.getElementById('fDate').value = `${selectedDate}T${timeStr}`;
+    if (id === 'expenseFormModal') {
+      if (!window._openingExpenseForm) {
+        window._openingExpenseForm = true;
+        window.openAddExpenseModal(selectedDate);
+        window._openingExpenseForm = false;
+        return;
       }
     } else if (id === 'budgetModal') {
       document.getElementById('bDaily').value = budgets.daily;
@@ -1618,7 +1233,6 @@
   });
 
   // Initialize
-  document.getElementById('fDate').value = setLocalDatetime();
   initExpensePage();
 
 </script>

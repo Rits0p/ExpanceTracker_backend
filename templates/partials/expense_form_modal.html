@@ -1,0 +1,738 @@
+<div class="modal-overlay" id="expenseFormModal">
+  <div class="modal" style="max-width: 600px;">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modalTitle">Add Expense</h2>
+      <button class="modal-close" onclick="closeModal('expenseFormModal')">✕</button>
+    </div>
+    <form id="expenseForm" novalidate>
+      <input type="hidden" id="fId">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Title *</label>
+          <input type="text" class="form-input" placeholder="e.g. Grocery" id="fTitle" required>
+          <div class="form-error" id="errTitle"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="amountLabel">Amount (₹) *</label>
+          <input type="number" class="form-input" placeholder="0.00" id="fAmount" required min="0.01" step="0.01">
+          <div class="form-error" id="errAmount"></div>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Category *</label>
+          <select class="form-select" id="fCategory" required>
+            <option value="">Select category</option>
+            {% for cat in categories %}
+            <option value="{{ cat.name }}">{{ cat.name }}</option>
+            {% endfor %}
+          </select>
+          <div class="form-error" id="errCategory"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Method</label>
+          <select class="form-select" id="fMethod" style="display: none;">
+            <option value="Cash" selected>Cash</option>
+            <option value="Credit Card">Credit Card</option>
+            <option value="Debit Card">Debit Card</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+            <option value="UPI">UPI</option>
+            <option value="Digital Wallet">Digital Wallet</option>
+            <option value="Net Banking">Net Banking</option>
+            <option value="Cheque">Cheque</option>
+            <option value="EMI">EMI</option>
+            <option value="Gift Card">Gift Card</option>
+            <option value="Other">Other</option>
+          </select>
+          
+          <!-- Custom Dropdown wrapper -->
+          <div class="custom-dropdown" id="fMethodDropdown">
+            <div class="custom-dropdown-trigger" id="fMethodTrigger">
+              <span class="custom-dropdown-value">
+                <i class="ph ph-banknote"></i> Cash
+              </span>
+              <i class="ph ph-caret-down custom-dropdown-arrow"></i>
+            </div>
+            <div class="custom-dropdown-menu" id="fMethodMenu">
+              <div class="custom-dropdown-item" data-value="Cash">
+                <i class="ph ph-banknote"></i> Cash
+              </div>
+              <div class="custom-dropdown-item" data-value="Credit Card">
+                <i class="ph ph-credit-card"></i> Credit Card
+              </div>
+              <div class="custom-dropdown-item" data-value="Debit Card">
+                <i class="ph ph-credit-card"></i> Debit Card
+              </div>
+              <div class="custom-dropdown-item" data-value="Bank Transfer">
+                <i class="ph ph-bank"></i> Bank Transfer
+              </div>
+              <div class="custom-dropdown-item" data-value="UPI">
+                <i class="ph ph-qr-code"></i> UPI
+              </div>
+              <div class="custom-dropdown-item" data-value="Digital Wallet">
+                <i class="ph ph-wallet"></i> Digital Wallet
+              </div>
+              <div class="custom-dropdown-item" data-value="Net Banking">
+                <i class="ph ph-desktop"></i> Net Banking
+              </div>
+              <div class="custom-dropdown-item" data-value="Cheque">
+                <i class="ph ph-file-text"></i> Cheque
+              </div>
+              <div class="custom-dropdown-item" data-value="EMI">
+                <i class="ph ph-arrows-clockwise"></i> EMI
+              </div>
+              <div class="custom-dropdown-item" data-value="Gift Card">
+                <i class="ph ph-gift"></i> Gift Card
+              </div>
+              <div class="custom-dropdown-item" data-value="Other">
+                <i class="ph ph-question"></i> Other
+              </div>
+            </div>
+          </div>
+          
+          <input type="text" class="form-input" id="fOtherMethod" placeholder="Please specify"
+            style="display: none; margin-top: 8px;">
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Date & Time *</label>
+          <input type="datetime-local" class="form-input" id="fDate" required>
+          <div class="form-error" id="errDate"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <input type="text" class="form-input" placeholder="Optional notes" id="fNotes">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Receipt Image</label>
+        <div class="upload-area" id="uploadArea">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40"
+            style="margin:0 auto 12px;display:block;color:var(--text-muted)">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          <div style="font-size:14px;color:var(--text-secondary)">Drag & drop receipt or <span
+              style="color:var(--accent-emerald);cursor:pointer">browse</span></div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:4px">PNG, JPG up to 5MB</div>
+          <input type="file" accept="image/*" id="fReceipt" style="display:none">
+        </div>
+        <div id="receiptPreview" style="margin-top:8px;display:none">
+          <img id="receiptImg"
+            style="max-width:120px;border-radius:var(--radius-sm);border:1px solid var(--glass-border)">
+        </div>
+      </div>
+      
+      <div class="form-group" style="display:flex;align-items:center;gap:12px;user-select:none;" id="recurringToggleContainer">
+        <div class="toggle" id="recurringToggle" onclick="window.toggleRecurringExpenseSwitch(event)"></div>
+        <span style="font-size:14px">Recurring expense</span>
+      </div>
+
+      <input type="hidden" id="fRecurringExpenseId">
+
+      <div id="recurringOptions"
+        style="display:none;margin-top:12px;padding:16px;border:1px solid var(--border-color);border-radius:12px;background:var(--bg-page);">
+        <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:12px;">Recurring Options
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Frequency *</label>
+            <select class="form-select" id="fRecurringFrequency">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly" selected>Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Start Date *</label>
+            <input type="date" class="form-input" id="fRecurringStart">
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">End Date</label>
+            <input type="date" class="form-input" id="fRecurringEnd">
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Leave empty for no end date</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Recurring Notes</label>
+            <input type="text" class="form-input" placeholder="e.g. Monthly subscription" id="fRecurringNotes">
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 12px; margin-top: 24px;">
+        <button type="submit" class="btn btn-primary" style="flex: 1;">Save Expense</button>
+        <button type="button" class="btn btn-secondary" onclick="closeModal('expenseFormModal')">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+/* Custom Dropdown Styling for Payment Method */
+.custom-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.custom-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-input);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  transition: var(--transition);
+  user-select: none;
+}
+
+.custom-dropdown-trigger:hover {
+  border-color: var(--accent-primary);
+}
+
+.custom-dropdown.active .custom-dropdown-trigger {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(254, 119, 67, 0.15);
+}
+
+.custom-dropdown-value {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.custom-dropdown-value i {
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+.custom-dropdown-arrow {
+  transition: transform 0.2s ease;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.custom-dropdown.active .custom-dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.custom-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-input);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.custom-dropdown.active .custom-dropdown-menu {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.custom-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.custom-dropdown-item:hover {
+  background: var(--bg-page);
+}
+
+.custom-dropdown-item i {
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+/* Upload Area Styling */
+.upload-area {
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-input);
+  padding: 24px;
+  text-align: center;
+  background: var(--bg-page);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.upload-area:hover, .upload-area.dragover {
+  border-color: var(--accent-primary);
+  background: rgba(254, 119, 67, 0.04);
+}
+</style>
+
+<script>
+(function() {
+  const expenseFormModal = document.getElementById('expenseFormModal');
+  const expenseForm = document.getElementById('expenseForm');
+  const fId = document.getElementById('fId');
+  const fTitle = document.getElementById('fTitle');
+  const fAmount = document.getElementById('fAmount');
+  const fCategory = document.getElementById('fCategory');
+  const fMethod = document.getElementById('fMethod');
+  const fDate = document.getElementById('fDate');
+  const fNotes = document.getElementById('fNotes');
+  const fReceipt = document.getElementById('fReceipt');
+  const fOtherMethod = document.getElementById('fOtherMethod');
+  
+  // Custom dropdown elements
+  const fMethodDropdown = document.getElementById('fMethodDropdown');
+  const fMethodTrigger = document.getElementById('fMethodTrigger');
+  const fMethodMenu = document.getElementById('fMethodMenu');
+  const fMethodItems = fMethodMenu ? fMethodMenu.querySelectorAll('.custom-dropdown-item') : [];
+
+  let formCategories = [];
+
+  function setLocalDatetime() {
+    const tzOffset = (new Date()).getTimezoneOffset() * 60000;
+    return (new Date(Date.now() - tzOffset)).toISOString().slice(0, 16);
+  }
+
+  async function loadFormCategories() {
+    if (typeof AppData !== 'undefined' && AppData.categories && AppData.categories.length) {
+      formCategories = AppData.categories;
+      populateCategoryDropdown();
+      return;
+    }
+    try {
+      const res = await Auth.apiFetch('/api/v1/categories');
+      if (res && res.success) {
+        formCategories = res.data?.results || res.data || [];
+        populateCategoryDropdown();
+      }
+    } catch (e) {
+      console.error('Failed to load form categories', e);
+    }
+  }
+
+  function populateCategoryDropdown() {
+    if (fCategory) {
+      const currentValue = fCategory.value;
+      fCategory.innerHTML = '<option value="">Select category</option>';
+      formCategories.forEach(c => {
+        fCategory.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+      });
+      if (currentValue) fCategory.value = currentValue;
+    }
+  }
+
+  function updateCustomDropdownUI(value) {
+    if (!fMethodItems.length || !fMethodTrigger) return;
+    let item = Array.from(fMethodItems).find(el => el.dataset.value === value);
+    if (!item && value) {
+      item = Array.from(fMethodItems).find(el => el.dataset.value === 'Other');
+      if (fOtherMethod) {
+        fOtherMethod.value = value;
+        fOtherMethod.style.display = 'block';
+        fOtherMethod.required = true;
+      }
+      if (fMethod) fMethod.value = 'Other';
+    } else {
+      if (fOtherMethod && (!value || value !== 'Other')) {
+        fOtherMethod.value = '';
+        fOtherMethod.style.display = 'none';
+        fOtherMethod.required = false;
+      }
+      if (fMethod) fMethod.value = value || 'Cash';
+    }
+    
+    if (!item) {
+      item = Array.from(fMethodItems).find(el => el.dataset.value === 'Cash');
+    }
+    
+    if (item) {
+      const triggerVal = fMethodTrigger.querySelector('.custom-dropdown-value');
+      if (triggerVal) triggerVal.innerHTML = item.innerHTML;
+    }
+  }
+
+  // Initialize custom dropdown events
+  if (fMethodTrigger && fMethodDropdown && fMethodMenu) {
+    fMethodTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      fMethodDropdown.classList.toggle('active');
+    });
+
+    fMethodItems.forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const value = item.dataset.value;
+        updateCustomDropdownUI(value);
+        fMethodDropdown.classList.remove('active');
+        if (fMethod) {
+          fMethod.dispatchEvent(new Event('change'));
+        }
+      });
+    });
+
+    document.addEventListener('click', () => {
+      fMethodDropdown.classList.remove('active');
+    });
+  }
+
+  if (fMethod && fOtherMethod) {
+    fMethod.addEventListener('change', (e) => {
+      if (e.target.value === 'Other') {
+        fOtherMethod.style.display = 'block';
+        fOtherMethod.required = true;
+      } else {
+        fOtherMethod.style.display = 'none';
+        fOtherMethod.required = false;
+        fOtherMethod.value = '';
+      }
+    });
+  }
+
+  // Upload area events
+  const uploadArea = document.getElementById('uploadArea');
+  if (uploadArea && fReceipt) {
+    uploadArea.addEventListener('click', () => fReceipt.click());
+    uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+    uploadArea.addEventListener('drop', e => { e.preventDefault(); uploadArea.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); });
+    fReceipt.addEventListener('change', () => { if (fReceipt.files[0]) handleFile(fReceipt.files[0]); });
+  }
+
+  function handleFile(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const receiptImg = document.getElementById('receiptImg');
+      const receiptPreview = document.getElementById('receiptPreview');
+      if (receiptImg && receiptPreview) {
+        receiptImg.src = e.target.result;
+        receiptPreview.style.display = 'block';
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // Toggle recurring
+  const recurringToggle = document.getElementById('recurringToggle');
+  const recurringOptions = document.getElementById('recurringOptions');
+
+  function showRecurringOptions() {
+    if (recurringOptions) recurringOptions.style.display = 'block';
+    const recStart = document.getElementById('fRecurringStart');
+    if (recStart && !recStart.value) {
+      const today = new Date();
+      const ymd = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+      recStart.value = ymd;
+    }
+  }
+
+  function hideRecurringOptions() {
+    if (recurringOptions) recurringOptions.style.display = 'none';
+  }
+
+  window.toggleRecurringExpenseSwitch = function (event) {
+    if (event) event.stopPropagation();
+    if (recurringToggle) {
+      recurringToggle.classList.toggle('active');
+      if (recurringToggle.classList.contains('active')) {
+        showRecurringOptions();
+      } else {
+        hideRecurringOptions();
+      }
+    }
+  };
+
+  // Form Submit Handler
+  expenseForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const id = fId.value;
+    const title = fTitle.value;
+    const amount = fAmount.value;
+    const category = fCategory.value;
+    const date = fDate.value;
+    let method = fMethod.value;
+    if (method === 'Other') {
+      const otherVal = fOtherMethod.value.trim();
+      if (otherVal) method = otherVal;
+    }
+    const notes = fNotes.value;
+
+    // Reset error fields
+    const errTitle = document.getElementById('errTitle');
+    const errAmount = document.getElementById('errAmount');
+    const errCategory = document.getElementById('errCategory');
+    const errDate = document.getElementById('errDate');
+
+    if (errTitle) errTitle.textContent = '';
+    if (errAmount) errAmount.textContent = '';
+    if (errCategory) errCategory.textContent = '';
+    if (errDate) errDate.textContent = '';
+
+    // Validation
+    let valid = true;
+    if (!title) { if (errTitle) errTitle.textContent = 'Required'; valid = false; }
+    if (!amount || parseFloat(amount) <= 0) { if (errAmount) errAmount.textContent = 'Required > 0'; valid = false; }
+    if (!category) { if (errCategory) errCategory.textContent = 'Required'; valid = false; }
+    if (!date) { if (errDate) errDate.textContent = 'Required'; valid = false; }
+
+    if (!valid) return;
+
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn ? submitBtn.textContent : 'Save Expense';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Saving...';
+    }
+
+    try {
+      // Handle recurring expense creation/update
+      let recurringId = document.getElementById('fRecurringExpenseId').value;
+      const isRecurringActive = recurringToggle && recurringToggle.classList.contains('active');
+
+      if (isRecurringActive) {
+        const freq = document.getElementById('fRecurringFrequency').value;
+        const startDate = document.getElementById('fRecurringStart').value;
+        const endDate = document.getElementById('fRecurringEnd').value;
+        const recNotes = document.getElementById('fRecurringNotes').value;
+
+        if (!startDate) {
+          document.getElementById('fRecurringStart').focus();
+          showToast('Please select a start date for recurring expense', 'error');
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalBtnText;
+          }
+          return;
+        }
+
+        const catObj = formCategories.find(c => c.name === category);
+        const categoryId = catObj ? catObj.id : null;
+
+        const recPayload = {
+          title: title.trim(),
+          amount: parseFloat(amount),
+          category: categoryId,
+          frequency: freq,
+          startDate: startDate,
+          notes: recNotes || '',
+        };
+        if (endDate) recPayload.endDate = endDate;
+
+        if (recurringId) {
+          const recRes = await Auth.apiFetch(`/api/v1/recurring-expenses/${recurringId}/`, {
+            method: 'PUT',
+            body: JSON.stringify(recPayload),
+          });
+          if (recRes && recRes.success) {
+            recurringId = recRes.data?.id || recRes.data?._id || recurringId;
+            if (typeof recurringExpenses !== 'undefined') {
+              const idx = recurringExpenses.findIndex(r => r.id == recurringId);
+              if (idx >= 0) recurringExpenses[idx] = recRes.data;
+            }
+          }
+        } else {
+          const recRes = await Auth.apiFetch('/api/v1/recurring-expenses/', {
+            method: 'POST',
+            body: JSON.stringify(recPayload),
+          });
+          if (recRes && recRes.success) {
+            recurringId = recRes.data?.id || recRes.data?._id;
+            if (recRes.data && typeof recurringExpenses !== 'undefined') {
+              recurringExpenses.push(recRes.data);
+            }
+          } else {
+            const errMsg = recRes?.message || 'Failed to create recurring expense';
+            showToast(errMsg, 'error');
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = originalBtnText;
+            }
+            return;
+          }
+        }
+      }
+
+      const formData = new FormData();
+      formData.append('title', title.trim());
+      formData.append('amount', parseFloat(amount));
+      formData.append('category', category);
+      formData.append('expenseDate', new Date(date).toISOString());
+      formData.append('paymentMethod', method || 'Cash');
+      formData.append('notes', notes || '');
+      formData.append('isRecurring', isRecurringActive);
+      formData.append('tags', JSON.stringify([]));
+
+      if (isRecurringActive) {
+        const freq = document.getElementById('fRecurringFrequency').value;
+        formData.append('recurringType', freq);
+        if (recurringId) {
+          formData.append('recurringExpense', recurringId);
+        }
+      }
+
+      if (fReceipt && fReceipt.files && fReceipt.files[0]) {
+        formData.append('receiptImage', fReceipt.files[0]);
+      }
+
+      const url = id ? `/api/v1/expenses/${id}/` : '/api/v1/expenses/';
+      const methodType = id ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method: methodType,
+        body: formData,
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRFToken': Auth.getCSRFToken()
+        }
+      });
+
+      if (response.ok) {
+        const savedExpense = await response.json();
+        showToast(`Expense ${id ? 'updated' : 'added'} successfully!`);
+        
+        window.dispatchEvent(new CustomEvent('expense-saved', {
+          detail: { id, category, amount: parseFloat(amount), expense: savedExpense }
+        }));
+        
+        window.dispatchEvent(new CustomEvent('ai:finance:changed', {
+          detail: { action: 'expense_changed', record: { id, category, amount: parseFloat(amount) } }
+        }));
+
+        closeModal('expenseFormModal');
+        expenseForm.reset();
+        fDate.value = setLocalDatetime();
+        if (document.getElementById('receiptPreview')) {
+          document.getElementById('receiptPreview').style.display = 'none';
+        }
+        if (recurringToggle) recurringToggle.classList.remove('active');
+        hideRecurringOptions();
+      } else {
+        let errorMsg = 'Failed to save expense';
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.message || errorData.detail || errorMsg;
+        } catch (e) { }
+        showToast(errorMsg, 'error');
+      }
+    } catch (error) {
+      showToast('Error saving expense: ' + error.message, 'error');
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
+      }
+    }
+  });
+
+  // Global methods
+  window.openAddExpenseModal = function (defaultDate = null) {
+    document.getElementById('modalTitle').textContent = 'Add Expense';
+    fId.value = '';
+    expenseForm.reset();
+    
+    if (defaultDate) {
+      const now = new Date();
+      const timeStr = now.toTimeString().slice(0, 5);
+      fDate.value = `${defaultDate}T${timeStr}`;
+    } else {
+      fDate.value = setLocalDatetime();
+    }
+    
+    if (recurringToggle) {
+      recurringToggle.classList.remove('active');
+      hideRecurringOptions();
+    }
+    document.getElementById('fRecurringExpenseId').value = '';
+    
+    if (document.getElementById('receiptPreview')) {
+      document.getElementById('receiptPreview').style.display = 'none';
+    }
+    
+    updateCustomDropdownUI('Cash');
+    openModal('expenseFormModal');
+  };
+
+  window.populateExpenseForm = function (exp) {
+    document.getElementById('modalTitle').textContent = 'Edit Expense';
+    fId.value = exp.id;
+    fTitle.value = exp.title;
+    fAmount.value = exp.amount;
+    fCategory.value = exp.category;
+
+    const d = new Date(exp.expenseDate || exp.date);
+    const tzOffset = d.getTimezoneOffset() * 60000;
+    const localISO = new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
+    fDate.value = localISO;
+
+    const pMethod = exp.paymentMethod || exp.method || 'Credit Card';
+    fMethod.value = pMethod;
+    updateCustomDropdownUI(pMethod);
+    fNotes.value = exp.notes || '';
+
+    const receiptPreview = document.getElementById('receiptPreview');
+    const receiptImg = document.getElementById('receiptImg');
+    if (receiptPreview && receiptImg) {
+      if (exp.receiptImage) {
+        receiptImg.src = exp.receiptImage;
+        receiptPreview.style.display = 'block';
+      } else {
+        receiptPreview.style.display = 'none';
+        receiptImg.src = '';
+      }
+    }
+
+    if (recurringToggle) {
+      const hasRecurDetail = exp.recurringExpenseDetail != null;
+      if (hasRecurDetail || exp.isRecurring) {
+        recurringToggle.classList.add('active');
+        showRecurringOptions();
+        const rd = exp.recurringExpenseDetail;
+        if (rd) {
+          document.getElementById('fRecurringExpenseId').value = rd.id || '';
+          document.getElementById('fRecurringFrequency').value = rd.frequency || 'monthly';
+          document.getElementById('fRecurringStart').value = rd.startDate || '';
+          document.getElementById('fRecurringEnd').value = rd.endDate || '';
+          document.getElementById('fRecurringNotes').value = rd.notes || '';
+        } else {
+          document.getElementById('fRecurringFrequency').value = exp.recurringType || 'monthly';
+        }
+      } else {
+        recurringToggle.classList.remove('active');
+        hideRecurringOptions();
+      }
+    }
+
+    openModal('expenseFormModal');
+  };
+
+  // Load categories on start
+  loadFormCategories();
+})();
+</script>
