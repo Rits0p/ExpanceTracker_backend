@@ -151,3 +151,31 @@ def calc_growth(current, previous):
     if previous == 0:
         return 100.0 if current > 0 else 0.0
     return round(((current - previous) / previous) * 100, 2)
+
+
+def _add_months(source_date, months):
+    """Add N months to a date, handling month/year rollover and day clamping."""
+    month = source_date.month - 1 + months
+    year = source_date.year + month // 12
+    month = month % 12 + 1
+    day = min(
+        source_date.day,
+        [31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28,
+         31, 30, 31, 30, 31, 31, 30, 31, 30, 31, 30, 31][month - 1]
+    )
+    return source_date.replace(year=year, month=month, day=day)
+
+
+def calculate_next_due_date(current_date, frequency):
+    """Calculate the next due date based on frequency."""
+    freq_map = {
+        'daily': 1,
+        'weekly': 7,
+        'monthly': 1,
+        'quarterly': 3,
+        'yearly': 12,
+    }
+    months = freq_map.get(frequency, 0)
+    if frequency in ('daily', 'weekly'):
+        return current_date + timedelta(days=months)
+    return _add_months(current_date, months)

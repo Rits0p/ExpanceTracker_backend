@@ -166,7 +166,11 @@ def _build_user_context(user) -> str:
     parts.append(f"[3M_TREND:{','.join(trend)}]")
 
     # ── Recurring expenses ────────────────────────────────────────────
-    recurring = Expense.objects.filter(user=user, is_recurring=True).order_by("-expense_date")[:8]
+    recurring = Expense.objects.filter(
+        user=user, is_recurring=True
+    ).exclude(
+        recurring_type__in=["daily", "weekly"]
+    ).order_by("-expense_date")[:8]
     if recurring.exists():
         rec_str = ",".join(
             f"{e.title[:15]}:₹{e.amount}({e.recurring_type or 'monthly'})" for e in recurring
@@ -249,6 +253,17 @@ def _execute_crud(user, intent: str, data: dict) -> dict:
 
         # ── ADD EXPENSE ───────────────────────────────────────────────
         if intent == "add_expense":
+            is_recurring = data.get("is_recurring", False)
+            is_recur_bool = False
+            if isinstance(is_recurring, str):
+                is_recur_bool = is_recurring.lower() in ("true", "1", "yes")
+            elif isinstance(is_recurring, bool):
+                is_recur_bool = is_recurring
+
+            rec_type = (data.get("recurring_type") or "").strip().lower()
+            if (is_recur_bool or rec_type) and rec_type in ["daily", "weekly"]:
+                return err("❌ I can only manage recurring expenses with Monthly, Quarterly, or Yearly recurrence. Please add daily or weekly recurring expenses manually.")
+
             raw_date = data.get("expense_date")
             try:
                 exp_date = datetime.fromisoformat(raw_date) if raw_date else datetime.now()
@@ -262,7 +277,7 @@ def _execute_crud(user, intent: str, data: dict) -> dict:
                 "paymentMethod": data.get("payment_method", "Cash"),
                 "notes":         data.get("notes", ""),
                 "expenseDate":   exp_date.isoformat(),
-                "isRecurring":   data.get("is_recurring", False),
+                "isRecurring":   is_recur_bool,
                 "recurringType": data.get("recurring_type"),
             }
             ser = ExpenseSerializer(data=payload)
@@ -300,6 +315,24 @@ def _execute_crud(user, intent: str, data: dict) -> dict:
             if not e:
                 return err(f"❌ No expense matching '{search or expense_id}' found.")
 
+            # Check if existing expense is a daily or weekly recurring expense
+            if e.is_recurring and (e.recurring_type or "").strip().lower() in ["daily", "weekly"]:
+                return err("❌ This is a daily or weekly recurring expense, which cannot be modified via the AI Assistant. Please edit it manually.")
+
+            # Check if update attempts to set/change it to daily or weekly recurring expense
+            new_is_recurring = fields.get("is_recurring", e.is_recurring)
+            new_rec_type = fields.get("recurring_type", e.recurring_type)
+            
+            new_is_recur_bool = False
+            if isinstance(new_is_recurring, str):
+                new_is_recur_bool = new_is_recurring.lower() in ("true", "1", "yes")
+            elif isinstance(new_is_recurring, bool):
+                new_is_recur_bool = new_is_recurring
+
+            new_rec_type_str = (new_rec_type or "").strip().lower()
+            if (new_is_recur_bool or new_rec_type_str) and new_rec_type_str in ["daily", "weekly"]:
+                return err("❌ I can only manage recurring expenses with Monthly, Quarterly, or Yearly recurrence. Please edit to daily or weekly recurring expenses manually.")
+
             # Map snake_case AI keys → serializer camelCase keys
             field_map = {
                 "payment_method": "paymentMethod",
@@ -331,6 +364,11 @@ def _execute_crud(user, intent: str, data: dict) -> dict:
             if not qs.exists():
                 return err(f"❌ No expense matching '{search}' found.")
             e = qs.first()
+
+            # Check if existing expense is a daily or weekly recurring expense
+            if e.is_recurring and (e.recurring_type or "").strip().lower() in ["daily", "weekly"]:
+                return err("❌ This is a daily or weekly recurring expense, which cannot be deleted via the AI Assistant. Please delete it manually.")
+
             name, amt = e.title, e.amount
             e.delete()
             return ok(f"🗑️ Deleted **{name}** (₹{amt})", "deleted", {"id": e.id})
@@ -620,6 +658,7 @@ Rules:
 - If the user's intent is ambiguous, prefer intent "none" and ask a clarifying question in the message.
 - When user asks "what is my budget" or "show my budget" for a specific month, use get_budget.
 - When user asks to see all budgets, use list_budgets.
+- Recurring Expenses: You can ONLY manage (add/edit/delete) recurring expenses with frequencies of "monthly", "quarterly", or "yearly". If the user requests "daily" or "weekly" recurrence, you MUST use the "none" intent and explain in the message that you do not support daily or weekly recurring expenses and they must manage them manually in the application.
 
 Examples:
 User: "Add ₹500 grocery expense today"

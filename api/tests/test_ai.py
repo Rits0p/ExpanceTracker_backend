@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 from django.utils import timezone
 
 from api.tests.base import BaseAPITestCase
-from api.models import Expense, Budget, Category, UserSettings
+from api.models import Expense, Budget, Category, UserSettings, RecurringExpense
 
 
 def _mock_groq_response(intent, message, data):
@@ -526,3 +526,159 @@ class AIAssistantTests(BaseAPITestCase):
         self.assertTrue(data['success'])
         self.assertIn("financial overview", data['data']['message'])
         mock_post.assert_not_called()
+
+    @patch('api.views.ai_views.requests.post')
+    def test_add_monthly_recurring_expense_via_ai(self, mock_post):
+        """AI add_expense intent for monthly recurring expense should succeed."""
+        mock_post.return_value = _mock_groq_response(
+            "add_expense",
+            "Added monthly recurring **Netflix** — ₹199",
+            {
+                "title": "Netflix",
+                "amount": 199,
+                "category": "Entertainment",
+                "payment_method": "Auto Pay",
+                "expense_date": timezone.now().isoformat(),
+                "is_recurring": True,
+                "recurring_type": "monthly",
+            }
+        )
+
+        response = self.client.post(
+            AI_ENDPOINT, {'text': 'Add monthly recurring Netflix for 199'}, format='multipart'
+        )
+        data = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(data['success'])
+        self.assertEqual(data['data']['crud_type'], 'created')
+        self.assertIn("Added monthly recurring", data['data']['message'])
+        
+        # Verify the RecurringExpense template was automatically created and linked
+        self.assertEqual(RecurringExpense.objects.count(), 1)
+        re = RecurringExpense.objects.first()
+        self.assertEqual(re.title, "Netflix")
+        self.assertEqual(float(re.amount), 199.0)
+        self.assertEqual(re.frequency, "monthly")
+        self.assertEqual(re.user, self.user)
+
+    @patch('api.views.ai_views.requests.post')
+    def test_add_daily_recurring_expense_via_ai_blocked(self, mock_post):
+        """AI add_expense intent for daily recurring expense should be blocked."""
+        mock_post.return_value = _mock_groq_response(
+            "add_expense",
+            "Add daily subscription",
+            {
+                "title": "Daily News",
+                "amount": 10,
+                "category": "Other",
+                "is_recurring": True,
+                "recurring_type": "daily",
+            }
+        )
+
+        response = self.client.post(
+            AI_ENDPOINT, {'text': 'Add daily recurring Daily News for 10'}, format='multipart'
+        )
+        data = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(data['success'])
+        self.assertEqual(data['data']['crud_type'], 'none')
+        self.assertIn("I can only manage recurring expenses with Monthly, Quarterly, or Yearly recurrence", data['data']['message'])
+
+    @patch('api.views.ai_views.requests.post')
+    def test_edit_daily_recurring_expense_via_ai_blocked(self, mock_post):
+        """AI edit_expense intent on an existing daily recurring expense should be blocked."""
+        # Create an existing daily recurring expense
+        daily_expense = Expense.objects.create(
+            user=self.test_user,
+            title="Daily Transit",
+            amount=50,
+            category="Travel",
+            is_recurring=True,
+            recurring_type="daily",
+            expense_date=timezone.now()
+        )
+
+        mock_post.return_value = _mock_groq_response(
+            "edit_expense",
+            "Update expense",
+            {
+                "id": daily_expense.id,
+                "fields": {"amount": 60}
+            }
+        )
+
+        response = self.client.post(
+            AI_ENDPOINT, {'text': 'Change Daily Transit to 60'}, format='multipart'
+        )
+        data = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(data['success'])
+        self.assertEqual(data['data']['crud_type'], 'none')
+        self.assertIn("This is a daily or weekly recurring expense, which cannot be modified", data['data']['message'])
+
+    @patch('api.views.ai_views.requests.post')
+    def test_edit_to_daily_recurring_expense_via_ai_blocked(self, mock_post):
+        """AI edit_expense intent changing a regular expense to daily recurring should be blocked."""
+        # Create a regular expense
+        regular_expense = Expense.objects.create(
+            user=self.test_user,
+            title="Normal Bus",
+            amount=50,
+            category="Travel",
+            is_recurring=False,
+            expense_date=timezone.now()
+        )
+
+        mock_post.return_value = _mock_groq_response(
+            "edit_expense",
+            "Update expense",
+            {
+                "id": regular_expense.id,
+                "fields": {
+                    "is_recurring": True,
+                    "recurring_type": "daily"
+                }
+            }
+        )
+
+        response = self.client.post(
+            AI_ENDPOINT, {'text': 'Make Normal Bus daily recurring'}, format='multipart'
+        )
+        data = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(data['success'])
+        self.assertEqual(data['data']['crud_type'], 'none')
+        self.assertIn("I can only manage recurring expenses with Monthly, Quarterly, or Yearly recurrence", data['data']['message'])
+
+    @patch('api.views.ai_views.requests.post')
+    def test_delete_daily_recurring_expense_via_ai_blocked(self, mock_post):
+        """AI del_expense intent on an existing daily recurring expense should be blocked."""
+        # Create an existing daily recurring expense
+        daily_expense = Expense.objects.create(
+            user=self.test_user,
+            title="Daily Transit",
+            amount=50,
+            category="Travel",
+            is_recurring=True,
+            recurring_type="daily",
+            expense_date=timezone.now()
+        )
+
+        mock_post.return_value = _mock_groq_response(
+            "del_expense",
+            "Delete transit",
+            {
+                "search": "Transit"
+            }
+        )
+
+        response = self.client.post(
+            AI_ENDPOINT, {'text': 'Delete my Transit expense'}, format='multipart'
+        )
+        data = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(data['success'])
+        self.assertEqual(data['data']['crud_type'], 'none')
+        self.assertIn("This is a daily or weekly recurring expense, which cannot be deleted", data['data']['message'])
+

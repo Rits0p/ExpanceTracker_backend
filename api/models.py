@@ -104,6 +104,7 @@ class Expense(models.Model):
         ('daily', 'Daily'),
         ('weekly', 'Weekly'),
         ('monthly', 'Monthly'),
+        ('quarterly', 'Quarterly'),
         ('yearly', 'Yearly'),
     ]
 
@@ -147,7 +148,74 @@ class Expense(models.Model):
             if not user:
                 user = User.objects.create_user('default_user', 'default@example.com', 'defaultpassword123')
             self.user = user
+
+        # Automatic RecurringExpense template management
+        if self.is_recurring:
+            freq = self.recurring_type or 'monthly'
+            from .utils import calculate_next_due_date
+            from django.utils import timezone
+            
+            # If not yet linked to a recurring template, look for a match or create one
+            if not self.recurring_expense:
+                # Find Category
+                cat_obj = Category.objects.filter(user=self.user, name=self.category).first()
+                if not cat_obj:
+                    cat_obj = Category.objects.filter(user=self.user).first()
+                if not cat_obj:
+                    cat_obj = Category.objects.create(user=self.user, name=self.category or 'Other', icon='ph-package', color='#6366f1')
+                
+                # Check for an existing matching active template to avoid duplicates
+                re = RecurringExpense.objects.filter(
+                    user=self.user,
+                    title=self.title,
+                    amount=self.amount,
+                    frequency=freq,
+                    is_active=True
+                ).first()
+                
+                if not re:
+                    start_val = self.expense_date.date() if self.expense_date else timezone.now().date()
+                    re = RecurringExpense.objects.create(
+                        user=self.user,
+                        category=cat_obj,
+                        title=self.title,
+                        amount=self.amount,
+                        frequency=freq,
+                        start_date=start_val,
+                        next_due_date=calculate_next_due_date(start_val, freq),
+                        is_active=True,
+                        notes=self.notes or ''
+                    )
+                self.recurring_expense = re
+            else:
+                # Sync properties to the existing template
+                re = self.recurring_expense
+                cat_obj = Category.objects.filter(user=self.user, name=self.category).first()
+                if cat_obj:
+                    re.category = cat_obj
+                re.title = self.title
+                re.amount = self.amount
+                re.frequency = freq
+                re.notes = self.notes or ''
+                re.save()
+        else:
+            # If this is an update, check if they explicitly toggled recurring off
+            if self.pk:
+                original = Expense.objects.filter(pk=self.pk).first()
+                if original and original.is_recurring and self.recurring_expense:
+                    re = self.recurring_expense
+                    re.is_active = False
+                    re.save()
+                    self.recurring_expense = None
+
         super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        # Delete associated recurring template if it exists
+        if self.is_recurring and self.recurring_expense:
+            re = self.recurring_expense
+            re.delete()
+        super().delete(*args, **kwargs)
 
     def __str__(self):
         return f"{self.title} — ${self.amount}"

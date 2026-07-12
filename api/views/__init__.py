@@ -11,6 +11,39 @@ from ..serializers import ExpenseSerializer
 from ..utils import ApiResponse
 
 
+def normalize_expense_payload(data):
+    """Accept either snake_case or camelCase from clients by mapping
+    common expense fields to the serializer's camelCase names.
+    """
+    # Convert QueryDict-like objects to a plain dict with single values
+    payload = {}
+    try:
+        keys = list(data.keys())
+    except Exception:
+        # If data is a plain dict
+        payload = dict(data)
+        keys = list(payload.keys())
+
+    if not payload:
+        for k in keys:
+            payload[k] = data.get(k)
+
+    # mapping snake_case -> camelCase expected by serializer
+    mapping = {
+        'expense_date': 'expenseDate',
+        'payment_method': 'paymentMethod',
+        'is_recurring': 'isRecurring',
+        'recurring_type': 'recurringType',
+        'receipt_image': 'receiptImage',
+    }
+
+    for snake, camel in mapping.items():
+        if snake in payload and camel not in payload:
+            payload[camel] = payload.get(snake)
+
+    return payload
+
+
 class ExpenseListCreateView(APIView):
     """GET /api/v1/expenses/ — list with filters & pagination
         POST /api/v1/expenses/ — create new expense"""
@@ -18,36 +51,7 @@ class ExpenseListCreateView(APIView):
     parser_classes = (JSONParser, MultiPartParser, FormParser)
 
     def _normalize_payload(self, data):
-        """Accept either snake_case or camelCase from clients by mapping
-        common expense fields to the serializer's camelCase names.
-        """
-        # Convert QueryDict-like objects to a plain dict with single values
-        payload = {}
-        try:
-            keys = list(data.keys())
-        except Exception:
-            # If data is a plain dict
-            payload = dict(data)
-            keys = list(payload.keys())
-
-        if not payload:
-            for k in keys:
-                payload[k] = data.get(k)
-
-        # mapping snake_case -> camelCase expected by serializer
-        mapping = {
-            'expense_date': 'expenseDate',
-            'payment_method': 'paymentMethod',
-            'is_recurring': 'isRecurring',
-            'recurring_type': 'recurringType',
-            'receipt_image': 'receiptImage',
-        }
-
-        for snake, camel in mapping.items():
-            if snake in payload and camel not in payload:
-                payload[camel] = payload.get(snake)
-
-        return payload
+        return normalize_expense_payload(data)
 
     def get(self, request):
         page = int(request.query_params.get('page', 1))
@@ -142,7 +146,8 @@ class ExpenseDetailView(APIView):
         expense = self._get_expense(pk)
         if not expense:
             return ApiResponse.error('Expense not found', 404)
-        serializer = ExpenseSerializer(expense, data=request.data, partial=True)
+        normalized = normalize_expense_payload(request.data)
+        serializer = ExpenseSerializer(expense, data=normalized, partial=True)
         if serializer.is_valid():
             expense = serializer.save()
             return ApiResponse.success(
