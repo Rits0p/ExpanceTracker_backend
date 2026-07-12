@@ -966,12 +966,16 @@
         console.error('Failed to fetch recurring expenses', e);
       }
       // Populate Add/Edit Form Category dropdown
-      const fCategory = document.getElementById('fCategory');
-      if (fCategory) {
-        fCategory.innerHTML = '<option value="">Select category</option>';
-        categories.forEach(c => {
-          fCategory.innerHTML += `<option value="${c.name}"><i class="ph ${c.icon || 'ph-package'}"></i> ${c.name}</option>`;
-        });
+      if (window.setFormCategories) {
+        window.setFormCategories(categories);
+      } else {
+        const fCategory = document.getElementById('fCategory');
+        if (fCategory) {
+          fCategory.innerHTML = '<option value="">Select category</option>';
+          categories.forEach(c => {
+            fCategory.innerHTML += `<option value="${c.name}" data-id="${c.id}"><i class="ph ${c.icon || 'ph-package'}"></i> ${c.name}</option>`;
+          });
+        }
       }
       // Populate Category Filter dropdown
       const categoryFilter = document.getElementById('categoryFilter');

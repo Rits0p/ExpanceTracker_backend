@@ -65,7 +65,10 @@ class RecurringExpenseViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, context={'request': request})
         if not serializer.is_valid():
+            print("RE_CREATE FAILED. Data:", request.data)
+            print("RE_CREATE ERRORS:", serializer.errors)
             return ApiResponse.error('Validation failed', status.HTTP_400_BAD_REQUEST, serializer.errors)
+
 
         next_due_date = serializer.validated_data.get('start_date')
         re = serializer.save(user=request.user, next_due_date=next_due_date)
