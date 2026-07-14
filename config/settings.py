@@ -197,6 +197,19 @@ JWT_COOKIE_NAMES = {
     'refresh': 'refresh_token',
 }
 
+# Firebase Cloud Messaging. The web values are public Firebase configuration;
+# the service-account path must point to a private JSON key outside source control.
+FIREBASE_SERVICE_ACCOUNT_PATH = os.getenv('FIREBASE_SERVICE_ACCOUNT_PATH', '')
+FIREBASE_WEB_CONFIG = {
+    'apiKey': os.getenv('FIREBASE_API_KEY', ''),
+    'authDomain': os.getenv('FIREBASE_AUTH_DOMAIN', ''),
+    'projectId': os.getenv('FIREBASE_PROJECT_ID', ''),
+    'storageBucket': os.getenv('FIREBASE_STORAGE_BUCKET', ''),
+    'messagingSenderId': os.getenv('FIREBASE_MESSAGING_SENDER_ID', ''),
+    'appId': os.getenv('FIREBASE_APP_ID', ''),
+    'vapidKey': os.getenv('FIREBASE_VAPID_KEY', ''),
+}
+
 # ═══════════════════════════════════════════════
 #  RATE LIMIT CONFIGURATION
 # ═══════════════════════════════════════════════

@@ -9,6 +9,7 @@ djangorestframework-simplejwt>=5.3
 Pillow>=10.0
 mysqlclient>=2.2.0
 google-genai>=1.0.0
+firebase-admin>=6.5,<7.0
 # Production server & static files
 gunicorn>=22.0
 whitenoise>=6.7

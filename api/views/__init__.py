@@ -117,6 +117,11 @@ class ExpenseListCreateView(APIView):
         serializer = ExpenseSerializer(data=normalized)
         if serializer.is_valid():
             expense = serializer.save(user=request.user)
+            # Push delivery is best-effort and must never make expense creation fail.
+            from django.db import transaction
+            from ..notifications import notify_budget_status
+
+            transaction.on_commit(lambda: notify_budget_status(request.user, expense))
             return ApiResponse.created(
                 ExpenseSerializer(expense).data,
                 message='Expense created successfully'

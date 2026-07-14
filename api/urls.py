@@ -43,6 +43,12 @@ from .views.analytics_views import (
     AnalyticsRecurringView,
 )
 from .views.recurring_expense_views import RecurringExpenseViewSet
+from .views.notification_views import (
+    DeviceTokenDetailView,
+    DeviceTokenListCreateView,
+    FirebaseConfigView,
+    NotificationTestView,
+)
 
 # ───── DRF Router for ViewSets ─────
 router = DefaultRouter()
@@ -87,6 +93,12 @@ urlpatterns = [
 
     # ───── AI Routes ─────
     path('ai/assistant', AIAssistantView.as_view(), name='ai-assistant'),
+
+    # Firebase Cloud Messaging device registration and diagnostics
+    path('notifications/config', FirebaseConfigView.as_view(), name='firebase-config'),
+    path('notifications/devices', DeviceTokenListCreateView.as_view(), name='device-list-create'),
+    path('notifications/devices/<int:pk>', DeviceTokenDetailView.as_view(), name='device-detail'),
+    path('notifications/test', NotificationTestView.as_view(), name='notification-test'),
 
     # ───── Recurring Expense Routes (ViewSet via Router) ─────
     path('', include(router.urls)),

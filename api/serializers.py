@@ -2,7 +2,16 @@
 Serializers for ExpenseIQ API — matching the Node.js request/response format.
 """
 from rest_framework import serializers
-from .models import Expense, Category, Budget, Report, Chat, Message, RecurringExpense
+from .models import (
+    Budget,
+    Category,
+    Chat,
+    DeviceToken,
+    Expense,
+    Message,
+    RecurringExpense,
+    Report,
+)
 
 
 # ───── Category Serializer ─────
@@ -226,4 +235,22 @@ class ChatSerializer(serializers.ModelSerializer):
         ret = super().to_representation(instance)
         ret['_id'] = str(ret['id'])
         return ret
+
+
+class DeviceTokenSerializer(serializers.ModelSerializer):
+    """Registers a device token without ever returning its secret value."""
+
+    class Meta:
+        model = DeviceToken
+        fields = ['id', 'token', 'platform', 'device_name', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'token': {'write_only': True, 'min_length': 20},
+        }
+
+    def validate_token(self, value):
+        token = value.strip()
+        if len(token) > 4096:
+            raise serializers.ValidationError('Invalid device token.')
+        return token
 
