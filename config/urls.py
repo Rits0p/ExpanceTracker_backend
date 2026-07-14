@@ -11,6 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from django.contrib import admin
 from django.urls import path, include
 from django.http import JsonResponse
+from django.http import HttpResponse
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
@@ -26,6 +27,36 @@ def health_check(request):
         'timestamp': datetime.now(timezone.utc).isoformat(),
         'uptime': round(time.time() - _start_time, 2),
     })
+
+
+def firebase_messaging_service_worker(request):
+    """Serve FCM's required root-scoped worker with public web config only."""
+    config = settings.FIREBASE_WEB_CONFIG
+    script = f"""importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js');
+firebase.initializeApp({config!r});
+const messaging = firebase.messaging();
+// Notification payloads are displayed by FCM in the background. The
+// WebpushConfig link supplied by the server defines the click destination.
+self.addEventListener('notificationclick', (event) => {{
+  event.notification.close();
+  const url = event.notification.data?.url || '/';
+  event.waitUntil(
+    clients.matchAll({{ type: 'window', includeUncontrolled: true }}).then((windowClients) => {{
+      for (const client of windowClients) {{
+        if (client.url.includes(self.location.origin) && 'focus' in client) {{
+          client.navigate(url);
+          return client.focus();
+        }}
+      }}
+      if (clients.openWindow) {{
+        return clients.openWindow(url);
+      }}
+    }})
+  );
+}});
+"""
+    return HttpResponse(script, content_type='application/javascript')
 
 
 from django.views.generic import TemplateView
@@ -65,6 +96,7 @@ urlpatterns = [
 
     path('admin/', admin.site.urls),
     path('health', health_check),
+    path('firebase-messaging-sw.js', firebase_messaging_service_worker, name='firebase-messaging-sw'),
     path('api/v1/', include('api.urls')),
     path('api/chats/', include('api.chats_urls')),
     path('api/v1/chats/', include('api.chats_urls')),

@@ -84,6 +84,21 @@ def generate_recurring_expenses(user=None):
 
             created.append(expense)
 
+    # Deliver only after the database transaction is committed, so a push never
+    # describes an expense that later rolls back.
+    if created:
+        from .notifications import send_push_notification
+
+        for expense in created:
+            send_push_notification(
+                expense.user,
+                event_type='recurring_expense_generated',
+                title='Recurring expense added',
+                body=f'A recurring expense was added to your tracker: {expense.title}.',
+                url='/expenses/',
+                data={'expenseId': expense.id},
+            )
+
     return created
 
 

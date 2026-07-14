@@ -16,6 +16,9 @@ db.sqlite3-journal
 .env
 .env.docker
 
+# Firebase service-account credentials
+push_notification/*.json
+
 # Media uploads
 media/
 

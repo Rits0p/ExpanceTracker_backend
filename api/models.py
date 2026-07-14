@@ -333,7 +333,7 @@ class UserSettings(models.Model):
     # Notifications
     budget_alerts = models.BooleanField(default=True)
     weekly_report = models.BooleanField(default=True)
-    recurring_reminders = models.BooleanField(default=False)
+    recurring_reminders = models.BooleanField(default=True)
     auto_backup = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -344,6 +344,56 @@ class UserSettings(models.Model):
 
     def __str__(self):
         return f"Settings for {self.user.username}"
+
+
+class DeviceToken(models.Model):
+    """An FCM registration token for one signed-in user's device or browser."""
+
+    PLATFORM_CHOICES = [
+        ('web', 'Web'),
+        ('android', 'Android'),
+        ('ios', 'iOS'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='device_tokens')
+    token = models.TextField()
+    token_hash = models.CharField(max_length=64, unique=True, editable=False)
+    platform = models.CharField(max_length=10, choices=PLATFORM_CHOICES, default='web')
+    device_name = models.CharField(max_length=100, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_seen_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-last_seen_at']
+
+    def save(self, *args, **kwargs):
+        from hashlib import sha256
+
+        self.token_hash = sha256(self.token.encode('utf-8')).hexdigest()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.platform} device for {self.user.username}"
+
+
+class NotificationEvent(models.Model):
+    """Records deduplicated notification events sent to a user."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notification_events')
+    event_type = models.CharField(max_length=50)
+    deduplication_key = models.CharField(max_length=150)
+    payload = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'event_type', 'deduplication_key'],
+                name='unique_user_notification_event',
+            )
+        ]
 
 
 class AIChatMessage(models.Model):
