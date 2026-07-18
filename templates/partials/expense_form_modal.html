@@ -328,7 +328,7 @@
         return;
       }
       try {
-        const res = await Auth.apiFetch('/api/v1/categories');
+        const res = await Auth.apiFetch('/api/v1/categories?all=true');
         if (res && res.success) {
           formCategories = res.data?.results || res.data || [];
           populateCategoryDropdown();
@@ -692,23 +692,40 @@
       openModal('expenseFormModal');
     };
 
-    window.populateExpenseForm = function (exp) {
+    window.populateExpenseForm = async function (expOrId) {
       document.getElementById('modalTitle').textContent = 'Edit Expense';
+      
+      let exp = expOrId;
+      if (typeof expOrId === 'number' || typeof expOrId === 'string' || (expOrId && typeof expOrId === 'object' && !expOrId.title)) {
+        const id = typeof expOrId === 'object' ? expOrId.id : expOrId;
+        try {
+          const res = await Auth.apiFetch(`/api/v1/expenses/${id}/`);
+          if (res && res.success) {
+            exp = res.data;
+          }
+        } catch (err) {
+          console.error('Failed to fetch expense details', err);
+          showToast('Failed to load expense details', 'error');
+          return;
+        }
+      }
+      if (!exp) return;
+
       fId.value = exp.id;
       fTitle.value = exp.title;
       fAmount.value = exp.amount;
       fCategory.value = exp.category;
-
+ 
       const d = new Date(exp.expenseDate || exp.date);
       const tzOffset = d.getTimezoneOffset() * 60000;
       const localISO = new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
       fDate.value = localISO;
-
+ 
       const pMethod = exp.paymentMethod || exp.method || 'Credit Card';
       fMethod.value = pMethod;
       updateCustomDropdownUI(pMethod);
       fNotes.value = exp.notes || '';
-
+ 
       const receiptPreview = document.getElementById('receiptPreview');
       const receiptImg = document.getElementById('receiptImg');
       if (receiptPreview && receiptImg) {
@@ -720,7 +737,7 @@
           receiptImg.src = '';
         }
       }
-
+ 
       if (recurringToggle) {
         const hasRecurDetail = exp.recurringExpenseDetail != null;
         if (hasRecurDetail || exp.isRecurring) {
@@ -741,7 +758,7 @@
           hideRecurringOptions();
         }
       }
-
+ 
       document.getElementById('expenseFormModal').classList.add('active');
     };
 

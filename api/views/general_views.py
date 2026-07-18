@@ -26,9 +26,36 @@ class CategoryListCreateView(APIView):
        POST /api/v1/categories/ — create new category"""
 
     def get(self, request):
-        page, limit = get_pagination_params(request.query_params)
-
         categories = Category.objects.filter(user=request.user).order_by('name')
+
+        is_all = request.query_params.get('all', '').lower() in ('true', '1')
+        if is_all:
+            serializer = CategorySerializer(categories, many=True)
+            return ApiResponse.success(serializer.data)
+
+        offset_param = request.query_params.get('offset')
+        if offset_param is not None:
+            try:
+                offset = max(0, int(offset_param))
+            except (ValueError, TypeError):
+                offset = 0
+            try:
+                limit = int(request.query_params.get('limit', 20))
+            except (ValueError, TypeError):
+                limit = 20
+            
+            from django.conf import settings
+            max_limit = getattr(settings, 'PAGINATION_MAX_LIMIT', 100)
+            limit = max(1, min(limit, max_limit))
+            
+            total = categories.count()
+            paginated = categories[offset:offset + limit]
+            page = (offset // limit) + 1 if limit > 0 else 1
+            serializer = CategorySerializer(paginated, many=True)
+            return ApiResponse.paginated(serializer.data, page, limit, total)
+
+        # Default page-based pagination
+        page, limit = get_pagination_params(request.query_params)
         total = categories.count()
         offset = (page - 1) * limit
         paginated = categories[offset:offset + limit]

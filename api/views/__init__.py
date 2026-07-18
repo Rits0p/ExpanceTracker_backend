@@ -58,7 +58,6 @@ class ExpenseListCreateView(APIView):
         return normalize_expense_payload(data)
 
     def get(self, request):
-        page, limit = get_pagination_params(request.query_params)
         sort_by = request.query_params.get('sortBy', 'expense_date')
         sort_order = request.query_params.get('sortOrder', 'desc')
         category = request.query_params.get('category')
@@ -108,7 +107,35 @@ class ExpenseListCreateView(APIView):
         ordering = f"{'-' if sort_order == 'desc' else ''}{sort_field}"
         queryset = queryset.order_by(ordering)
 
-        # Pagination
+        # Pagination & All
+        is_all = request.query_params.get('all', '').lower() in ('true', '1')
+        if is_all:
+            serializer = ExpenseSerializer(queryset, many=True)
+            return ApiResponse.success(serializer.data)
+
+        offset_param = request.query_params.get('offset')
+        if offset_param is not None:
+            try:
+                offset = max(0, int(offset_param))
+            except (ValueError, TypeError):
+                offset = 0
+            try:
+                limit = int(request.query_params.get('limit', 20))
+            except (ValueError, TypeError):
+                limit = 20
+            
+            from django.conf import settings
+            max_limit = getattr(settings, 'PAGINATION_MAX_LIMIT', 100)
+            limit = max(1, min(limit, max_limit))
+            
+            total = queryset.count()
+            expenses = queryset[offset:offset + limit]
+            page = (offset // limit) + 1 if limit > 0 else 1
+            serializer = ExpenseSerializer(expenses, many=True)
+            return ApiResponse.paginated(serializer.data, page, limit, total)
+
+        # Default page-based pagination
+        page, limit = get_pagination_params(request.query_params)
         total = queryset.count()
         offset = (page - 1) * limit
         expenses = queryset[offset:offset + limit]

@@ -143,9 +143,13 @@ async function initializeMessaging() {
     const registrations = await navigator.serviceWorker.getRegistrations();
     for (const reg of registrations) {
       const activeWorker = reg.active || reg.installing || reg.waiting;
-      if (activeWorker && !activeWorker.scriptURL.endsWith('/firebase-messaging-sw.js')) {
-        console.log('[FCM] Cleaning up incorrect/stale service worker path:', activeWorker.scriptURL);
-        await reg.unregister();
+      if (activeWorker) {
+        const url = new URL(activeWorker.scriptURL);
+        const isObsoleteFirebaseWorker = url.pathname.includes('firebase-messaging-sw.js') && url.pathname !== '/firebase-messaging-sw.js';
+        if (isObsoleteFirebaseWorker) {
+          console.log('[FCM] Cleaning up incorrect/stale service worker path:', activeWorker.scriptURL);
+          await reg.unregister();
+        }
       }
     }
   } catch (e) {
@@ -188,13 +192,18 @@ async function initializeMessaging() {
   return { config, registration };
 }
 
-window.addEventListener('load', () => {
-  console.log('[FCM] Window load. Checking API support...');
+window.addEventListener('load', async () => {
+  console.log('[FCM] Window load. Checking API support, authentication, and permission status...');
   if (!('Notification' in window)) {
     console.log('[FCM] Notification API not available.');
     return;
   }
+  
   console.log('[FCM] Permission state:', Notification.permission);
+  
+  const isAuthenticated = Auth?.isLoggedIn() ?? false;
+  console.log('[FCM] Authentication status:', isAuthenticated);
+  
   if (Notification.permission === 'granted') {
     console.log('[FCM] Permission is already granted. Attempting to restore messaging listener...');
     initializeMessaging()
@@ -208,10 +217,13 @@ window.addEventListener('load', () => {
           if (token) {
             console.log('[FCM] Token retrieved on load. Length:', token.length);
             const deviceName = `${navigator.platform || 'Browser'} (${navigator.userAgent.slice(0, 60)})`;
-            await Auth.apiFetch('/api/v1/notifications/devices', {
+            const saved = await Auth.apiFetch('/api/v1/notifications/devices', {
               method: 'POST',
               body: JSON.stringify({ token, platform: 'web', device_name: deviceName }),
             });
+            if (!saved || !saved.success) {
+              throw new Error(saved?.message || 'Token registration failed on backend');
+            }
             console.log('[FCM] Token registered with backend on page load.');
           } else {
             console.warn('[FCM] No token retrieved on page load.');
@@ -225,8 +237,28 @@ window.addEventListener('load', () => {
         console.warn('[FCM] Unable to restore Firebase message listener. Error details:');
         console.dir(error);
       });
+  } else if (Notification.permission === 'default' && isAuthenticated) {
+    console.log('[FCM] Permission is default and user is authenticated. Automatically requesting permission...');
+    try {
+      const { enable } = window.NotificationManager;
+      if (typeof enable === 'function') {
+        console.log('[FCM] Calling NotificationManager.enable() to request permission...');
+        const result = await enable();
+        if (result === 'permission-denied' || Notification.permission !== 'granted') {
+          console.warn('[FCM] Permission was not granted. User may block notifications.');
+        } else {
+          console.log('[FCM] Permission granted and notifications enabled automatically.');
+        }
+      } else {
+        console.warn('[FCM] NotificationManager.enable() is not available or not a function.');
+      }
+    } catch (error) {
+      console.warn('[FCM] Error requesting notification permission automatically:', error);
+    }
+  } else if (isAuthenticated) {
+    console.log('[FCM] Notifications are pending user consent (Notification.permission is default/not-granted) but user authenticated.');
   } else {
-    console.log('[FCM] Notifications are not yet enabled or not granted on this device.');
+    console.log('[FCM] Notifications are not yet enabled OR user is not authenticated yet.');
   }
 });
 

@@ -903,10 +903,6 @@ class AIAssistantView(APIView):
             ai_message  = result["message"] or ai_message
             crud_type   = result["crud_type"]
             crud_record = result.get("crud_record")
-            # Send notification for real CRUD operations
-            if crud_type and crud_type != "none":
-                from ..notifications import notify_ai_crud_performed
-                notify_ai_crud_performed(user, crud_type, ai_message[:200])
 
         # ── 10. Save to Database ──────────────────────────────────────
         AIChatMessage.objects.create(

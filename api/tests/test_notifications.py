@@ -149,7 +149,8 @@ class NewNotificationTriggerTests(BaseAPITestCase):
             event_type="auth_password_changed",
             title="Password changed",
             body="Your account password was changed successfully.",
-            url="/settings/"
+            url="/settings/",
+            data=None
         )
 
     @patch("api.notifications.send_push_notification")

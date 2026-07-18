@@ -281,8 +281,10 @@ class DeviceTokenSerializer(serializers.ModelSerializer):
     def to_internal_value(self, data):
         # Accept both snake_case and camelCase for device_name
         if 'device_name' in data and 'deviceName' not in data:
+            legacy_device_name = data.get('device_name')
             data = data.copy()
-            data['deviceName'] = data.pop('device_name')
+            data.pop('device_name')
+            data['deviceName'] = legacy_device_name
         return super().to_internal_value(data)
 
 
