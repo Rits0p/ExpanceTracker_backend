@@ -5,521 +5,291 @@
 {% block page_title %}User Profile{% endblock %}
 {% block page_subtitle %}Manage your account settings{% endblock %}
 
-
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/profile.css' %}" />
+{% endblock %}
 {% block content %}
-<div class="page fade-in">
-        {% if messages %}
-        <div style="margin-bottom: 24px">
-          {% for message in messages %}
-          <div
-            class="{% if message.tags == 'success' %}msg-success{% else %}msg-error{% endif %}"
-            style="
-              padding: 12px 16px;
-              border-radius: var(--radius-md);
-              margin-bottom: 8px;
-              font-size: 14px;
-            "
-          >
-            {{ message }}
-          </div>
-          {% endfor %}
+<div class="profile-redesign-container fade-in">
+  <!-- Status/Message Messages -->
+  {% if messages %}
+  <div style="margin-bottom: 24px">
+    {% for message in messages %}
+    <div class="profile-alert-banner {% if message.tags == 'success' %}profile-alert-success{% else %}profile-alert-error{% endif %}">
+      {% if message.tags == 'success' %}
+      <i class="ph ph-check-circle" style="font-size: 18px"></i>
+      {% else %}
+      <i class="ph ph-warning-circle" style="font-size: 18px"></i>
+      {% endif %}
+      <span>{{ message }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="profile-redesign-layout">
+    <!-- Left Column: User Summary -->
+    <div class="profile-sidebar-card">
+      <div class="profile-avatar-wrapper">
+        <div class="profile-avatar-circle">
+          {{ user.username|slice:":1"|upper }}
         </div>
-        {% endif %}
+      </div>
 
-        <div class="profile-grid">
-          <!-- Left: Profile Summary & Character Profile -->
-          <div style="display: flex; flex-direction: column; gap: 24px;">
-            <!-- Profile Summary -->
-            <div class="card">
-              <div style="text-align: center; padding: 20px 0">
-                <div
-                  style="
-                    width: 100px;
-                    height: 100px;
-                    border-radius: 50%;
-                    background: var(--gradient-purple);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 32px;
-                    font-weight: 700;
-                    color: #fff;
-                    margin: 0 auto 16px;
-                    box-shadow: var(--shadow-lg);
-                  "
-                >
-                  {{ user.username|slice:":1"|upper }}
-                </div>
-                <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 4px">
-                  {{ user.username }}
-                </h2>
-                <p
-                  style="
-                    color: var(--text-secondary);
-                    font-size: 14px;
-                    margin-bottom: 24px;
-                  "
-                >
-                  Member since {{ user.date_joined|date:"F Y" }}
-                </p>
+      <h2 class="profile-name">{{ user.username }}</h2>
+      <div class="profile-meta-date">
+        <i class="ph ph-calendar-blank"></i>
+        <span>Joined {{ user.date_joined|date:"F Y" }}</span>
+      </div>
 
-                <div
-                  style="
-                    display: flex;
-                    flex-direction: column;
-                    gap: 12px;
-                    text-align: left;
-                  "
-                >
-                  <div
-                    style="
-                      display: flex;
-                      justify-content: space-between;
-                      padding: 12px;
-                      background: var(--bg-card);
-                      border-radius: var(--radius-md);
-                    "
-                  >
-                    <span style="color: var(--text-secondary); font-size: 13px"
-                      >Total Expenses</span
-                    >
-                    <span style="font-weight: 600" id="profTotalExpenses"
-                      >$0</span
-                    >
-                  </div>
-                  <div
-                    style="
-                      display: flex;
-                      justify-content: space-between;
-                      padding: 12px;
-                      background: var(--bg-card);
-                      border-radius: var(--radius-md);
-                    "
-                  >
-                    <span style="color: var(--text-secondary); font-size: 13px"
-                      >Monthly Expenses</span
-                    >
-                    <span style="font-weight: 600" id="profMonthlyBudget"
-                      >$0</span
-                    >
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Character Profile Card -->
-            
-          </div>
-
-          <!-- Right: Profile Details -->
-          <div class="card">
-            <!-- View Mode -->
-            <div id="profileViewMode">
-              <div class="card-header">
-                <div class="card-title">Profile Information</div>
-                <button
-                  class="btn btn-secondary btn-sm"
-                  onclick="toggleEditMode(true)"
-                >
-                  Edit Profile
-                </button>
-              </div>
-
-              <div
-                style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px"
-                class="profile-info-grid"
-              >
-                <div>
-                  <label class="form-label" style="opacity: 0.7"
-                    >First Name</label
-                  >
-                  <div
-                    style="
-                      font-size: 16px;
-                      font-weight: 500;
-                      padding: 12px;
-                      background: var(--bg-card);
-                      border-radius: var(--radius-md);
-                      border: 1px solid var(--glass-border);
-                    "
-                  >
-                    {{ user.first_name|default:"Not set" }}
-                  </div>
-                </div>
-                <div>
-                  <label class="form-label" style="opacity: 0.7"
-                    >Last Name</label
-                  >
-                  <div
-                    style="
-                      font-size: 16px;
-                      font-weight: 500;
-                      padding: 12px;
-                      background: var(--bg-card);
-                      border-radius: var(--radius-md);
-                      border: 1px solid var(--glass-border);
-                    "
-                  >
-                    {{ user.last_name|default:"Not set" }}
-                  </div>
-                </div>
-              </div>
-
-              <div style="margin-top: 24px">
-                <label class="form-label" style="opacity: 0.7"
-                  >Email Address</label
-                >
-                <div
-                  style="
-                    font-size: 16px;
-                    font-weight: 500;
-                    padding: 12px;
-                    background: var(--bg-card);
-                    border-radius: var(--radius-md);
-                    border: 1px solid var(--glass-border);
-                    word-break: break-all;
-                  "
-                >
-                  {{ user.email }}
-                </div>
-              </div>
-
-              <div style="margin-top: 24px">
-                <label class="form-label" style="opacity: 0.7">Username</label>
-                <div
-                  style="
-                    font-size: 16px;
-                    font-weight: 500;
-                    padding: 12px;
-                    background: var(--bg-card);
-                    border-radius: var(--radius-md);
-                    border: 1px solid var(--glass-border);
-                  "
-                >
-                  {{ user.username }}
-                </div>
-              </div>
-            </div>
-
-            <!-- Edit Mode (Hidden by default) -->
-            <div id="profileEditMode" style="display: none">
-              <div class="card-header">
-                <div class="card-title">Edit Profile Information</div>
-              </div>
-
-              <form method="POST">
-                {% csrf_token %}
-                <div
-                  style="
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 16px;
-                    margin-bottom: 24px;
-                  "
-                  class="profile-info-grid"
-                >
-                  <div class="form-group">
-                    <label class="form-label">First Name</label>
-                    <input
-                      type="text"
-                      name="first_name"
-                      class="form-input"
-                      value="{{ user.first_name }}"
-                      placeholder="First Name"
-                    />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Last Name</label>
-                    <input
-                      type="text"
-                      name="last_name"
-                      class="form-input"
-                      value="{{ user.last_name }}"
-                      placeholder="Last Name"
-                    />
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label">Email Address</label>
-                  <input
-                    type="email"
-                    name="email"
-                    class="form-input"
-                    value="{{ user.email }}"
-                    placeholder="email@example.com"
-                    required
-                  />
-                </div>
-
-                <div
-                  style="
-                    display: flex;
-                    gap: 12px;
-                    margin-top: 32px;
-                    flex-wrap: wrap;
-                  "
-                >
-                  <button
-                    type="submit"
-                    class="btn btn-primary"
-                    style="padding: 12px 32px"
-                  >
-                    Save Changes
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-secondary"
-                    onclick="toggleEditMode(false)"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+      <!-- Financial Metrics -->
+      <div class="profile-stats-panel">
+        <div class="profile-stats-row">
+          <span class="profile-stats-label">Total Expenses</span>
+          <span class="profile-stats-val" id="profTotalExpenses">$0</span>
         </div>
+        <div class="profile-stats-row">
+          <span class="profile-stats-label">Monthly Spending</span>
+          <span class="profile-stats-val" id="profMonthlyBudget">$0</span>
+        </div>
+      </div>
+    </div>
 
-        <!-- Change Password Section -->
-        <div class="card" style="margin-top: 24px">
-          <div class="card-header">
-            <div class="card-title">🔒 Change Password</div>
-          </div>
-          <form id="changePasswordForm">
-            <div
-              style="
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-                gap: 16px;
-              "
-            >
-              <div class="form-group">
-                <label class="form-label">Current Password</label>
-                <input
-                  type="password"
-                  class="form-input"
-                  id="currentPassword"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-              <div class="form-group">
-                <label class="form-label">New Password</label>
-                <input
-                  type="password"
-                  class="form-input"
-                  id="newPassword"
-                  placeholder="Min. 8 characters"
-                  required
-                />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Confirm New Password</label>
-                <input
-                  type="password"
-                  class="form-input"
-                  id="confirmNewPassword"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
+    <!-- Right Column: Profile details & configurations -->
+    <div class="profile-right-panel">
+      <!-- Section 1: Profile Details -->
+      <div class="profile-settings-section">
+        <!-- View Mode -->
+        <div id="profileViewMode" class="profile-fade-transition">
+          <div class="profile-section-header">
+            <div class="profile-section-title-group">
+              <h3 class="profile-section-title">
+                <i class="ph ph-user"></i> Personal Information
+              </h3>
+              <p class="profile-section-subtitle">Manage your profile details and email address</p>
             </div>
-            <div
-              id="pwAlert"
-              style="
-                display: none;
-                padding: 12px 16px;
-                border-radius: var(--radius-md);
-                font-size: 13px;
-                margin-top: 12px;
-              "
-            ></div>
-            <button
-              type="submit"
-              class="btn btn-primary"
-              style="margin-top: 16px"
-            >
-              Update Password
+            <button class="btn-redesign btn-redesign-secondary" onclick="toggleEditMode(true)">
+              <i class="ph ph-pencil-simple"></i> Edit Profile
             </button>
+          </div>
+
+          <div class="profile-details-list">
+            <div class="profile-details-row">
+              <span class="profile-details-label">First Name</span>
+              <span class="profile-details-value">{{ user.first_name|default:"—" }}</span>
+            </div>
+            <div class="profile-details-row">
+              <span class="profile-details-label">Last Name</span>
+              <span class="profile-details-value">{{ user.last_name|default:"—" }}</span>
+            </div>
+            <div class="profile-details-row">
+              <span class="profile-details-label">Email Address</span>
+              <span class="profile-details-value" style="word-break: break-all;">{{ user.email }}</span>
+            </div>
+            <div class="profile-details-row">
+              <span class="profile-details-label">Username</span>
+              <span class="profile-details-value">{{ user.username }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Edit Mode -->
+        <div id="profileEditMode" style="display: none;" class="profile-fade-transition">
+          <div class="profile-section-header">
+            <div class="profile-section-title-group">
+              <h3 class="profile-section-title">
+                <i class="ph ph-user-focus"></i> Edit Profile Information
+              </h3>
+              <p class="profile-section-subtitle">Change your contact details and basic info</p>
+            </div>
+          </div>
+
+          <form method="POST">
+            {% csrf_token %}
+            <div class="profile-form-grid">
+              <div class="profile-form-group">
+                <label class="profile-form-label">First Name</label>
+                <input
+                  type="text"
+                  name="first_name"
+                  class="profile-form-input"
+                  value="{{ user.first_name }}"
+                  placeholder="e.g. John"
+                />
+              </div>
+              <div class="profile-form-group">
+                <label class="profile-form-label">Last Name</label>
+                <input
+                  type="text"
+                  name="last_name"
+                  class="profile-form-input"
+                  value="{{ user.last_name }}"
+                  placeholder="e.g. Doe"
+                />
+              </div>
+            </div>
+
+            <div class="profile-form-group" style="margin-bottom: 24px;">
+              <label class="profile-form-label">Email Address</label>
+              <input
+                type="email"
+                name="email"
+                class="profile-form-input"
+                value="{{ user.email }}"
+                placeholder="email@example.com"
+                required
+              />
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+              <button type="submit" class="btn-redesign btn-redesign-primary">
+                <i class="ph ph-check"></i> Save Changes
+              </button>
+              <button type="button" class="btn-redesign btn-redesign-secondary" onclick="toggleEditMode(false)">
+                <i class="ph ph-x"></i> Cancel
+              </button>
+            </div>
           </form>
         </div>
+      </div>
 
-        <!-- Danger Zone -->
-        <div
-          class="card"
-          style="margin-top: 24px; border-color: rgba(239, 68, 68, 0.2)"
-        >
-          <div class="card-header">
-            <div class="card-title" style="color: var(--accent-red)">
-              ⚠️ Danger Zone
-            </div>
-          </div>
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              flex-wrap: wrap;
-              gap: 16px;
-            "
-          >
-            <div>
-              <div style="font-weight: 500; margin-bottom: 4px">
-                Log Out of All Devices
-              </div>
-              <div style="font-size: 13px; color: var(--text-secondary)">
-                This will invalidate all your sessions
-              </div>
-            </div>
-            <button class="btn btn-danger" onclick="handleLogout()">
-              Log Out Everywhere
-            </button>
+      <!-- Section 2: Security & Password -->
+      <div class="profile-settings-section">
+        <div class="profile-section-header">
+          <div class="profile-section-title-group">
+            <h3 class="profile-section-title">
+              <i class="ph ph-shield-check"></i> Security
+            </h3>
+            <p class="profile-section-subtitle">Update your password to keep your account safe</p>
           </div>
         </div>
+
+        <form id="changePasswordForm">
+          <div class="password-form-grid">
+            <div class="profile-form-group">
+              <label class="profile-form-label">Current Password</label>
+              <input
+                type="password"
+                class="profile-form-input"
+                id="currentPassword"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+            <div class="profile-form-group">
+              <label class="profile-form-label">New Password</label>
+              <input
+                type="password"
+                class="profile-form-input"
+                id="newPassword"
+                placeholder="Min. 8 characters"
+                required
+              />
+            </div>
+            <div class="profile-form-group">
+              <label class="profile-form-label">Confirm New Password</label>
+              <input
+                type="password"
+                class="profile-form-input"
+                id="confirmNewPassword"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+          </div>
+
+          <div id="pwAlert" style="display: none; padding: 12px 16px; border-radius: var(--radius-md); font-size: 13px; margin-bottom: 16px; font-weight: 500;"></div>
+
+          <button type="submit" class="btn-redesign btn-redesign-primary">
+            <i class="ph ph-key"></i> Update Password
+          </button>
+        </form>
+      </div>
+
+      <!-- Section 3: Danger Zone -->
+      <div class="profile-settings-section danger-section">
+        <div class="profile-section-header" style="border-bottom-color: rgba(232, 69, 69, 0.1);">
+          <div class="profile-section-title-group">
+            <h3 class="profile-section-title" style="color: var(--accent-danger)">
+              <i class="ph ph-warning-octagon"></i> Danger Zone
+            </h3>
+            <p class="profile-section-subtitle">Sensitive operations with immediate session effects</p>
+          </div>
+        </div>
+
+        <div class="danger-section-content">
+          <div class="danger-text-group">
+            <div class="danger-text-title">Log Out of All Devices</div>
+            <div class="danger-text-desc">This action will invalidate all current active browser sessions and require logging in again everywhere.</div>
+          </div>
+          <button class="btn-redesign btn-redesign-danger" onclick="handleLogout()">
+            <i class="ph ph-sign-out"></i> Log Out Everywhere
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-    <script>
-      function toggleEditMode(show) {
-        document.getElementById("profileViewMode").style.display = show
-          ? "none"
-          : "block";
-        document.getElementById("profileEditMode").style.display = show
-          ? "block"
-          : "none";
-      }
+<script>
+  function toggleEditMode(show) {
+    document.getElementById("profileViewMode").style.display = show ? "none" : "block";
+    document.getElementById("profileEditMode").style.display = show ? "block" : "none";
+  }
 
-      async function loadProfileStats() {
-        if (typeof Auth !== "undefined") await Auth.init();
-        await API.getDashboardData();
-        if (AppData.kpis) {
-          const totalExpense = AppData.kpis.totalExpense || 0;
-          const monthlyExpense = AppData.kpis.monthlyExpense || 0;
-          
-          document.getElementById("profTotalExpenses").textContent =
-            Settings.formatCurrency(totalExpense);
-          document.getElementById("profMonthlyBudget").textContent =
-            Settings.formatCurrency(monthlyExpense);
+  async function loadProfileStats() {
+    if (typeof Auth !== "undefined") await Auth.init();
+    await API.getDashboardData();
+    if (AppData.kpis) {
+      const totalExpense = AppData.kpis.totalExpense || 0;
+      const monthlyExpense = AppData.kpis.monthlyExpense || 0;
+      
+      document.getElementById("profTotalExpenses").textContent = Settings.formatCurrency(totalExpense);
+      document.getElementById("profMonthlyBudget").textContent = Settings.formatCurrency(monthlyExpense);
+    }
+  }
+  loadProfileStats();
 
-          // Calculate Character Stats
-          // 1. Level & XP based on expenses length
-          const expensesCount = AppData.expenses ? AppData.expenses.length : 0;
-          const baseXP = expensesCount * 15;
-          const level = Math.floor(baseXP / 100) + 1;
-          const currentXp = baseXP % 100;
+  // Change password via JWT API
+  document.getElementById("changePasswordForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const alert = document.getElementById("pwAlert");
+    const current = document.getElementById("currentPassword").value;
+    const newPw = document.getElementById("newPassword").value;
+    const confirm = document.getElementById("confirmNewPassword").value;
 
-          // 2. Title based on savings rate
-          const savingsRate = AppData.kpis.savingsRate || 0;
-          let title = "Apprentice Saver";
-          let sub = "Level " + level + " Financial Explorer";
-          if (savingsRate > 50) {
-            title = "Wealth Wizard 🧙‍♂️";
-            sub = "Level " + level + " Master of Money";
-          } else if (savingsRate > 25) {
-            title = "Budget Guardian 🛡️";
-            sub = "Level " + level + " Defender of Gold";
-          } else if (savingsRate > 10) {
-            title = "Thrifty Ranger 🏹";
-            sub = "Level " + level + " Agile Saver";
-          }
+    if (newPw.length < 8) {
+      alert.style.display = "block";
+      alert.style.background = "rgba(232,69,69,0.1)";
+      alert.style.color = "var(--accent-danger)";
+      alert.style.border = "1px solid rgba(232,69,69,0.2)";
+      alert.textContent = "New password must be at least 8 characters.";
+      return;
+    }
+    if (newPw !== confirm) {
+      alert.style.display = "block";
+      alert.style.background = "rgba(232,69,69,0.1)";
+      alert.style.color = "var(--accent-danger)";
+      alert.style.border = "1px solid rgba(232,69,69,0.2)";
+      alert.textContent = "New passwords do not match.";
+      return;
+    }
 
-          // 3. HP (Budget Health) based on budget limits
-          let hp = 100;
-          const hasBudget = AppData.budget && AppData.budget.budget > 0;
-          if (hasBudget) {
-            const budgetLimit = AppData.budget.budget;
-            const spent = AppData.budget.spent || 0;
-            const spentPct = (spent / budgetLimit) * 100;
-            hp = Math.max(0, Math.round(100 - spentPct));
-          } else {
-            // Default check based on income
-            const income = AppData.kpis.totalIncome || 0;
-            if (income > 0) {
-              const expensePct = (monthlyExpense / income) * 100;
-              hp = Math.max(0, Math.round(100 - expensePct));
-            }
-          }
-
-          // Update character UI
-          const badgeEl = document.getElementById("charLevelBadge");
-          if (badgeEl) badgeEl.textContent = "LV. " + level;
-          
-          const titleEl = document.getElementById("charTitle");
-          if (titleEl) titleEl.textContent = title;
-          
-          const subEl = document.getElementById("charSub");
-          if (subEl) subEl.textContent = sub;
-          
-          const hpTextEl = document.getElementById("charHpText");
-          if (hpTextEl) hpTextEl.textContent = hp + "/100 HP";
-          
-          const hpFillEl = document.getElementById("charHpFill");
-          if (hpFillEl) {
-            hpFillEl.style.width = hp + "%";
-            hpFillEl.className = "progress-fill";
-            if (hp > 80) hpFillEl.classList.add("healthy");
-            else if (hp > 30) hpFillEl.classList.add("warning");
-            else hpFillEl.classList.add("danger");
-          }
-
-          const xpTextEl = document.getElementById("charXpText");
-          if (xpTextEl) xpTextEl.textContent = currentXp + "/100 XP";
-          
-          const xpFillEl = document.getElementById("charXpFill");
-          if (xpFillEl) xpFillEl.style.width = currentXp + "%";
-
-          const strEl = document.getElementById("charStr");
-          if (strEl) strEl.textContent = expensesCount + " (STR)";
-
-          const defEl = document.getElementById("charDef");
-          if (defEl) defEl.textContent = hp + " (DEF)";
-        }
-      }
-      loadProfileStats();
-
-      // Change password via JWT API
-      document
-        .getElementById("changePasswordForm")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const alert = document.getElementById("pwAlert");
-          const current = document.getElementById("currentPassword").value;
-          const newPw = document.getElementById("newPassword").value;
-          const confirm = document.getElementById("confirmNewPassword").value;
-
-          if (newPw.length < 8) {
-            alert.style.display = "block";
-            alert.style.background = "rgba(239,68,68,0.1)";
-            alert.style.color = "#ef4444";
-            alert.style.border = "1px solid rgba(239,68,68,0.2)";
-            alert.textContent = "New password must be at least 8 characters.";
-            return;
-          }
-          if (newPw !== confirm) {
-            alert.style.display = "block";
-            alert.style.background = "rgba(239,68,68,0.1)";
-            alert.style.color = "#ef4444";
-            alert.style.border = "1px solid rgba(239,68,68,0.2)";
-            alert.textContent = "New passwords do not match.";
-            return;
-          }
-
-          const result = await Auth.changePassword(current, newPw, confirm);
-          alert.style.display = "block";
-          if (result.success) {
-            alert.style.background = "rgba(16,185,129,0.1)";
-            alert.style.color = "#10b981";
-            alert.style.border = "1px solid rgba(16,185,129,0.2)";
-            alert.textContent =
-              result.message || "Password changed successfully!";
-            e.target.reset();
-          } else {
-            alert.style.background = "rgba(239,68,68,0.1)";
-            alert.style.color = "#ef4444";
-            alert.style.border = "1px solid rgba(239,68,68,0.2)";
-            alert.textContent = result.message || "Failed to change password.";
-          }
-        });
-    </script>
+    const result = await Auth.changePassword(current, newPw, confirm);
+    alert.style.display = "block";
+    if (result.success) {
+      alert.style.background = "rgba(44,182,125,0.1)";
+      alert.style.color = "var(--accent-success)";
+      alert.style.border = "1px solid rgba(44,182,125,0.2)";
+      alert.textContent = result.message || "Password changed successfully!";
+      e.target.reset();
+    } else {
+      alert.style.background = "rgba(232,69,69,0.1)";
+      alert.style.color = "var(--accent-danger)";
+      alert.style.border = "1px solid rgba(232,69,69,0.2)";
+      alert.textContent = result.message || "Failed to change password.";
+    }
+  });
+</script>
 {% endblock %}

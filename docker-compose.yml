@@ -42,6 +42,7 @@ services:
     volumes:
       - media_files:/app/media
       - static_files:/app/staticfiles
+      - ./push_notification/expense-tracker-cdd62-firebase-adminsdk-fbsvc-ec7a6055d2.json:/app/push_notification/expense-tracker-cdd62-firebase-adminsdk-fbsvc-ec7a6055d2.json:ro
     depends_on:
       db:
         condition: service_healthy

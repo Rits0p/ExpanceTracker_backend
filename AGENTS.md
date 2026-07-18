@@ -21,10 +21,11 @@ api/
   services.py                  # Recurring-expense business logic
   authentication.py            # JWT cookie helpers and authentication class
   middleware.py                # CSRF cookie and per-IP rate limiting
+  notifications.py             # FCM delivery and budget notification helpers
   signals.py                   # Defaults created for newly registered users
   urls.py                      # /api/v1/ routes
   chats_urls.py                # Chat routes, mounted at /api/chats/ and /api/v1/chats/
-  views/                       # Auth, expenses, analytics, reports, AI, chats, recurring expenses
+  views/                       # Auth, expenses, analytics, reports, AI, chats, notifications, recurring expenses
   management/commands/         # seed_data and generate_recurring_expenses
   tests/                       # API and model tests
 config/
@@ -37,7 +38,7 @@ docker/                         # Entrypoint, Nginx, and MySQL setup
 
 ## Domain model
 
-The application currently has nine core API models:
+The application currently has eleven core API models:
 
 - `Category` - per-user categories, visual metadata, and monthly budget.
 - `RecurringExpense` - a category-linked recurring template with scheduling state.
@@ -45,6 +46,8 @@ The application currently has nine core API models:
 - `Budget` - a per-user monthly budget with daily, weekly, yearly, and warning values.
 - `Report` - generated CSV/PDF report metadata and totals.
 - `UserSettings` - one-to-one appearance, currency, and notification preferences.
+- `DeviceToken` - persists FCM registration tokens for users' browsers/devices.
+- `NotificationEvent` - tracks sent notifications for deduplication with unique constraint on `(user, event_type, deduplication_key)`.
 - `AIChatMessage` - legacy persisted AI prompt/response history.
 - `Chat` and `Message` - current persisted conversation and message history.
 
@@ -63,7 +66,8 @@ The application currently has nine core API models:
 
 - REST routes are mounted below `/api/v1/`; route trailing slashes are intentionally inconsistent, so preserve the existing path style when extending a route group.
 - Authentication routes live in `config/urls.py` under `/api/v1/auth/`.
-- Main resource groups: expenses, categories, settings, budget, reports, analytics, AI assistant, and `recurring-expenses/` (a DRF ViewSet).
+- Main resource groups: expenses, categories, settings, budget (consolidated GET/POST under `/api/v1/budget`), reports, analytics, AI assistant, notifications (`/api/v1/notifications/config`, `/api/v1/notifications/devices`, `/api/v1/notifications/test`), and `recurring-expenses/` (a DRF ViewSet).
+- A helper seeding endpoint exists at `/api/v1/expenses/seed` to bulk-create test transactions for visual/pagination testing.
 - Chats are available at both `/api/chats/` and `/api/v1/chats/` for compatibility.
 - API schema and documentation: `/api/schema/`, `/api/docs/swagger/`, and `/api/docs/redoc/`.
 - The unauthenticated health check is `/health`.
@@ -93,6 +97,14 @@ Use the established HTTP semantics: 200 for successful reads/updates, 201 for cr
 - The management command is `python manage.py generate_recurring_expenses`, optionally with `--user <id>`. A scheduler may run it daily; keep it safe to run repeatedly.
 - Supported recurrence frequencies are daily, weekly, monthly, quarterly, and yearly. Changes must keep serializer validation, scheduling calculations, analytics, and tests aligned.
 
+## Notifications and FCM
+
+- FCM (Firebase Cloud Messaging) integration supports push notifications for key events.
+- Push delivery is best-effort and runs within transaction commit callbacks (e.g., `transaction.on_commit(lambda: notify_budget_status(request.user, expense))`) to ensure it never blocks or fails primary database operations.
+- The `send_once` helper deduplicates notification events per user using `NotificationEvent` database records to prevent spamming.
+- FCM configurations and keys are loaded dynamically from settings: `settings.FIREBASE_SERVICE_ACCOUNT_PATH` for server-side initialization and `settings.FIREBASE_WEB_CONFIG` for client-side configuration.
+- Users can toggle notification options via their profile settings (budget alerts, weekly report, recurring reminders).
+
 ## AI assistant and chats
 
 - The assistant uses the Groq OpenAI-compatible endpoint configured with `GROQ_API_KEY`, `GROQ_MODEL`, `GROQ_API_BASE_URL`, `GROQ_TEMPERATURE`, and `GROQ_MAX_TOKENS`.
@@ -105,7 +117,7 @@ Use the established HTTP semantics: 200 for successful reads/updates, 201 for cr
 - Use the Django ORM; do not add raw SQL unless there is a reviewed, documented need.
 - Add migrations for every schema change. Do not edit applied migration files or delete historical migrations.
 - Preserve model-level constraints, indexes, and user isolation. Model queries should avoid N+1 access patterns.
-- Monetary fields are `DecimalField`s. Keep calculations in `Decimal` until the API serialization boundary.
+- Monetary fields are `DecimalField`s. Keep calculations in `Decimal` until the API serialization boundary. Serializers (e.g., `CategorySerializer`, `ExpenseSerializer`, `BudgetSerializer`, `RecurringExpenseSerializer`) enforce rounding values to 2 decimal places using `round(value, 2)` during both validation and serialization.
 
 ## Testing and quality checks
 
@@ -124,6 +136,7 @@ Target focused tests during development, for example:
 ```bash
 python manage.py test api.tests.test_recurring_expenses
 python manage.py test api.tests.test_auth
+python manage.py test api.tests.test_notifications
 ```
 
 When changing an endpoint, cover success, invalid input, ownership/permission boundaries, and relevant empty or date-boundary cases. For query-heavy endpoints, also watch query counts and relation loading.

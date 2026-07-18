@@ -42,6 +42,33 @@
     border-color: var(--accent-primary);
     color: var(--accent-primary);
   }
+  .modal-pagination {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .modal-pagination button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .modal-pagination button:hover:not(:disabled) {
+    background: var(--bg-hover);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+  }
+  .modal-pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 </style>
 {% endblock %}
 
@@ -275,8 +302,8 @@
       </div>
       <div class="history-header-actions">
         <span class="total-spent-badge">Total Spent: <span id="historyTotalSpent">₹0</span></span>
-        <button class="view-all-toggle-btn" id="viewAllToggleBtn" onclick="toggleViewAllMode()">
-          <i class="ph ph-arrows-out"></i> View All
+        <button class="view-all-toggle-btn" id="viewMoreExpensesBtn" onclick="openAllExpensesModal()">
+          <i class="ph ph-list-bullets"></i> View More
         </button>
       </div>
     </div>
@@ -316,6 +343,51 @@
 
 <!-- ADD/EDIT EXPENSE MODAL -->
 {% include 'partials/expense_form_modal.html' %}
+
+<!-- ALL EXPENSES LIST MODAL -->
+<div class="modal-overlay" id="allExpensesModal">
+  <div class="modal" style="max-width: 1800px; width: 98%; max-height: 100vh; display: flex; flex-direction: column;">
+    <div class="modal-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color);">
+      <div>
+        <h2 class="modal-title" style="margin-bottom: 2px;">All Expenses</h2>
+        <p style="font-size: 12px; color: var(--text-muted); margin: 0;" id="modalExpenseCount">0 expenses</p>
+      </div>
+      <button class="modal-close" onclick="closeModal('allExpensesModal')">✕</button>
+    </div>
+    <div class="modal-body" style="overflow-y: auto; flex: 1; padding: 20px;">
+      <!-- Table inside Modal -->
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Category</th>
+              <th>Date & Time</th>
+              <th>Method</th>
+              <th>Amount</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="modalExpenseTableBody">
+            <!-- Loaded dynamically by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <!-- Modal Footer with Pagination (20 per page, arrows) -->
+    <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-top: 1px solid var(--border-color); background: var(--bg-card);">
+      <span style="font-size: 13px; color: var(--text-secondary);" id="modalPageIndicator">Page 1 of 1</span>
+      <div class="modal-pagination">
+        <button id="modalPrevPageBtn" onclick="navigateModalPage(-1)">
+          <i class="ph ph-caret-left" style="font-size: 16px; vertical-align: middle;"></i>
+        </button>
+        <button id="modalNextPageBtn" onclick="navigateModalPage(1)">
+          <i class="ph ph-caret-right" style="font-size: 16px; vertical-align: middle;"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 
 <!-- BUDGET MODAL -->
@@ -417,6 +489,8 @@
   let searchQuery = '';
   let currentPage = 1;
   const perPage = 5;
+  let modalCurrentPage = 1;
+  const modalPerPage = 20;
   let catSpendingFilter = 'day'; // 'day', 'week', 'month', 'year'
 
   window.setCatSpendingFilter = function (filter) {
@@ -914,6 +988,12 @@
     };
     handleResize();
     window.addEventListener('resize', handleResize);
+
+    // Refresh Modal view if open
+    const modalEl = document.getElementById('allExpensesModal');
+    if (modalEl && modalEl.classList.contains('active')) {
+      renderModalExpenses();
+    }
   }
 
   // Render Category Spending Progress (spending-only, no budget)
@@ -1324,6 +1404,80 @@
       if (this.value) { this.classList.remove('error'); }
     });
   });
+
+  // Modal Expenses List
+  window.openAllExpensesModal = function() {
+    modalCurrentPage = 1;
+    openModal('allExpensesModal');
+    renderModalExpenses();
+  };
+
+  window.navigateModalPage = function(direction) {
+    const filtered = getFilteredExpenses();
+    const totalPages = Math.ceil(filtered.length / modalPerPage) || 1;
+    const newPage = modalCurrentPage + direction;
+    if (newPage >= 1 && newPage <= totalPages) {
+      modalCurrentPage = newPage;
+      renderModalExpenses();
+    }
+  };
+
+  window.renderModalExpenses = function() {
+    const filtered = getFilteredExpenses();
+    const totalPages = Math.ceil(filtered.length / modalPerPage) || 1;
+    
+    if (modalCurrentPage > totalPages) modalCurrentPage = totalPages;
+    if (modalCurrentPage < 1) modalCurrentPage = 1;
+
+    const start = (modalCurrentPage - 1) * modalPerPage;
+    const pageData = filtered.slice(start, start + modalPerPage);
+
+    document.getElementById('modalExpenseCount').textContent = `${filtered.length} expenses`;
+    document.getElementById('modalPageIndicator').textContent = `Page ${modalCurrentPage} of ${totalPages}`;
+
+    const prevBtn = document.getElementById('modalPrevPageBtn');
+    const nextBtn = document.getElementById('modalNextPageBtn');
+    if (prevBtn) prevBtn.disabled = (modalCurrentPage === 1);
+    if (nextBtn) nextBtn.disabled = (modalCurrentPage === totalPages);
+
+    const tbody = document.getElementById('modalExpenseTableBody');
+    tbody.innerHTML = '';
+
+    if (pageData.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-secondary);padding: 24px 0;">No expenses found</td></tr>`;
+    } else {
+      pageData.forEach(exp => {
+        const cat = categories.find(c => c.name === exp.category);
+        const methodStr = exp.paymentMethod || exp.method || 'N/A';
+        const catName = exp.category || 'Other';
+        
+        let badgeClass = 'badge-utilities';
+        const lowerCat = catName.toLowerCase();
+        if (lowerCat.includes("food")) badgeClass = "badge-food";
+        else if (lowerCat.includes("trans")) badgeClass = "badge-transport";
+        else if (lowerCat.includes("enter")) badgeClass = "badge-entertainment";
+        else if (lowerCat.includes("util")) badgeClass = "badge-utilities";
+        else if (lowerCat.includes("heal")) badgeClass = "badge-health";
+        else if (lowerCat.includes("shop")) badgeClass = "badge-shopping";
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td style="color:var(--text-primary);font-weight:500">${exp.title}</td>
+          <td><span class="badge ${badgeClass}"><i class="ph ${cat ? cat.icon : 'ph-package'}"></i> ${exp.category}</span></td>
+          <td>${new Date(exp.expenseDate || exp.date).toLocaleString()}</td>
+          <td>${methodStr}</td>
+          <td style="color:var(--accent-danger);font-weight:600">-${formatINR(exp.amount)}</td>
+          <td>
+            <div style="display:flex;gap:4px;">
+              <button class="btn btn-sm btn-secondary" onclick="closeModal('allExpensesModal'); editExpense(${exp.id});">Edit</button>
+              <button class="btn btn-sm btn-danger-ghost" onclick="deleteExpense(${exp.id})">Delete</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+  };
 
   // Cross-page state updates
   window.addEventListener('ai:finance:changed', (e) => {

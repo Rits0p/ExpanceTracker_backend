@@ -3,9 +3,10 @@ Django settings for ExpenseIQ project.
 SQLite database, DRF, CORS headers, JWT auth, rate limiting.
 """
 import os
-from pathlib import Path
-from dotenv import load_dotenv
 from datetime import timedelta
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 load_dotenv()
 

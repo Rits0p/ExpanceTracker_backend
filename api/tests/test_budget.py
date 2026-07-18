@@ -120,6 +120,15 @@ class BudgetGetTests(BaseAPITestCase):
         self.assertIn('isWarning', data['data'])
         self.assertEqual(data['data']['totalMonthlyBudget'], 2500.00)
 
+    def test_get_budget_without_trailing_slash(self):
+        """Should succeed when accessing GET /api/v1/budget (without trailing slash)."""
+        now = self.now
+        response = self.client.get('/api/v1/budget', {
+            'month': now.month, 'year': now.year
+        })
+        data = self.assert_success_response(response)
+        self.assertEqual(data['data']['totalMonthlyBudget'], 2500.00)
+
     def test_get_budget_spending_calculation(self):
         """Spending should reflect actual expenses in the month."""
         now = self.now

@@ -56,6 +56,26 @@ async function enable() {
 async function initializeMessaging() {
   const config = await getConfig();
   const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+
+  // Ensure the service worker is active/activated to prevent 'no active Service Worker' error
+  await new Promise((resolve) => {
+    const activeWorker = registration.active || registration.installing || registration.waiting;
+    if (activeWorker) {
+      if (activeWorker.state === 'activated') {
+        resolve();
+      } else {
+        activeWorker.addEventListener('statechange', function onStateChange(e) {
+          if (e.target.state === 'activated' || e.target.state === 'redundant') {
+            activeWorker.removeEventListener('statechange', onStateChange);
+            resolve();
+          }
+        });
+      }
+    } else {
+      resolve();
+    }
+  });
+
   messaging = messaging || getMessaging(initializeApp(config));
 
   if (!foregroundListenerRegistered) {

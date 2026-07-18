@@ -517,9 +517,23 @@
       theme: { mode: chartMode() },
       grid: { borderColor: gridColor(), strokeDashArray: 4, padding: { top: 0, right: 0, bottom: 0, left: 10 } },
       dataLabels: { enabled: false },
-      tooltip: { theme: chartMode() },
+      tooltip: {
+        theme: chartMode(),
+        y: {
+          formatter: function (val) {
+            return sym + parseFloat(val).toFixed(2);
+          }
+        }
+      },
       xaxis: { axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { colors: textColor(), fontFamily: "DM Sans" } } },
-      yaxis: { labels: { style: { colors: textColor(), fontFamily: "DM Sans" } } },
+      yaxis: {
+        labels: {
+          style: { colors: textColor(), fontFamily: "DM Sans" },
+          formatter: function (val) {
+            return sym + parseFloat(val).toFixed(2);
+          }
+        }
+      },
       legend: { labels: { colors: textColor(), useSeriesColors: false }, fontFamily: "DM Sans" },
     });
 
@@ -593,6 +607,7 @@
 
   // Update charts on theme change
   function updateChartsTheme() {
+    const sym = (typeof Settings !== 'undefined' && Settings._data && Settings._data.currencySymbol) || '$';
     const mode = document.body.classList.contains("light-mode") ? "light" : "dark";
     const gridClr = document.body.classList.contains("light-mode") ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.06)";
     const textClr = document.body.classList.contains("light-mode") ? "#273F4F" : "#D7D7D7";
@@ -605,16 +620,32 @@
       : ["#FE7743", "#6BB5D4", "#B39DDB", "#2CB67D", "#F07070", "#FFCC80"];
 
     const updateOptions = {
-      theme: { mode }, tooltip: { theme: mode }, grid: { borderColor: gridClr },
+      theme: { mode },
+      tooltip: {
+        theme: mode,
+        y: {
+          formatter: function (val) {
+            return sym + parseFloat(val).toFixed(2);
+          }
+        }
+      },
+      grid: { borderColor: gridClr },
       xaxis: { labels: { style: { colors: textClr, fontFamily: "DM Sans" } } },
-      yaxis: { labels: { style: { colors: textClr, fontFamily: "DM Sans" } } },
+      yaxis: {
+        labels: {
+          style: { colors: textClr, fontFamily: "DM Sans" },
+          formatter: function (val) {
+            return sym + parseFloat(val).toFixed(2);
+          }
+        }
+      },
       legend: { labels: { colors: textClr }, fontFamily: "DM Sans" },
     };
 
     if (window.chartMonthlyBar)  window.chartMonthlyBar.updateOptions({ ...updateOptions, colors: [primaryClr] });
     if (window.chartWeeklyLine)  window.chartWeeklyLine.updateOptions({ ...updateOptions, colors: [purpleClr, cyanClr] });
     if (window.chartIncExpArea)  window.chartIncExpArea.updateOptions({ ...updateOptions, colors: [successClr, purpleClr] });
-    if (window.chartCatPie)      window.chartCatPie.updateOptions({ theme: { mode }, tooltip: { theme: mode }, legend: { labels: { colors: textClr }, fontFamily: "DM Sans" }, colors: donutColors });
+    if (window.chartCatPie)      window.chartCatPie.updateOptions({ theme: { mode }, tooltip: { theme: mode, y: { formatter: function (val) { return sym + parseFloat(val).toFixed(2); } } }, legend: { labels: { colors: textClr }, fontFamily: "DM Sans" }, colors: donutColors });
   }
 
   window.openQuickAddModal = function () { window.openAddExpenseModal(); };

@@ -81,8 +81,42 @@ class CategoryDetailView(APIView):
 # ═══════════════════════════════════════════
 #  BUDGET VIEWS
 # ═══════════════════════════════════════════
-class BudgetSetView(APIView):
-    """POST /api/v1/budget — set/update monthly budget"""
+class BudgetView(APIView):
+    """GET/POST /api/v1/budget — get or set/update monthly budget"""
+
+    def get(self, request):
+        month = request.query_params.get('month')
+        year = request.query_params.get('year')
+
+        if not month or not year:
+            return ApiResponse.error('month and year query params are required', 400)
+
+        try:
+            budget = Budget.objects.get(user=request.user, month=int(month), year=int(year))
+        except Budget.DoesNotExist:
+            return ApiResponse.error('Budget not found', 404)
+
+        # Calculate current spending for the month
+        start = datetime(int(year), int(month), 1, tzinfo=dt_timezone.utc)
+        if int(month) == 12:
+            end = datetime(int(year) + 1, 1, 1, tzinfo=dt_timezone.utc)
+        else:
+            end = datetime(int(year), int(month) + 1, 1, tzinfo=dt_timezone.utc)
+
+        current_spent = Expense.objects.filter(
+            user=request.user,
+            expense_date__gte=start, expense_date__lt=end
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        current_spent = float(current_spent)
+        budget_total = float(budget.total_monthly_budget)
+
+        data = BudgetSerializer(budget).data
+        data['currentSpent'] = current_spent
+        data['remainingAmount'] = budget_total - current_spent
+        data['usagePercent'] = round((current_spent / budget_total * 100), 2) if budget_total > 0 else 0
+        data['isWarning'] = (current_spent / budget_total * 100) >= budget.warning_threshold if budget_total > 0 else False
+
+        return ApiResponse.success(data)
 
     def post(self, request):
         month = request.data.get('month')
@@ -129,42 +163,9 @@ class BudgetSetView(APIView):
         )
 
 
-class BudgetGetView(APIView):
-    """GET /api/v1/budget?month=&year= — get budget with spending info"""
-
-    def get(self, request):
-        month = request.query_params.get('month')
-        year = request.query_params.get('year')
-
-        if not month or not year:
-            return ApiResponse.error('month and year query params are required', 400)
-
-        try:
-            budget = Budget.objects.get(user=request.user, month=int(month), year=int(year))
-        except Budget.DoesNotExist:
-            return ApiResponse.error('Budget not found', 404)
-
-        # Calculate current spending for the month
-        start = datetime(int(year), int(month), 1, tzinfo=dt_timezone.utc)
-        if int(month) == 12:
-            end = datetime(int(year) + 1, 1, 1, tzinfo=dt_timezone.utc)
-        else:
-            end = datetime(int(year), int(month) + 1, 1, tzinfo=dt_timezone.utc)
-
-        current_spent = Expense.objects.filter(
-            user=request.user,
-            expense_date__gte=start, expense_date__lt=end
-        ).aggregate(total=Sum('amount'))['total'] or 0
-        current_spent = float(current_spent)
-        budget_total = float(budget.total_monthly_budget)
-
-        data = BudgetSerializer(budget).data
-        data['currentSpent'] = current_spent
-        data['remainingAmount'] = budget_total - current_spent
-        data['usagePercent'] = round((current_spent / budget_total * 100), 2) if budget_total > 0 else 0
-        data['isWarning'] = (current_spent / budget_total * 100) >= budget.warning_threshold if budget_total > 0 else False
-
-        return ApiResponse.success(data)
+# Backward compatibility aliases
+BudgetSetView = BudgetView
+BudgetGetView = BudgetView
 
 
 class BudgetGetAllView(APIView):

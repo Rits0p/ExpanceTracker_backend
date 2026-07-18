@@ -16,6 +16,7 @@ from .views import (
     ExpenseSearchView,
     ExpenseRecurringView,
     ExpenseReceiptUploadView,
+    ExpenseSeedView,
 )
 from .views.ai_views import AIAssistantView
 
@@ -58,6 +59,7 @@ urlpatterns = [
     # ───── Expense Routes ─────
     path('expenses/', ExpenseListCreateView.as_view(), name='expense-list-create'),
     path('expenses/search', ExpenseSearchView.as_view(), name='expense-search'),
+    path('expenses/seed', ExpenseSeedView.as_view(), name='expense-seed'),
     path('expenses/recurring', ExpenseRecurringView.as_view(), name='expense-recurring'),
     path('expenses/<int:pk>/', ExpenseDetailView.as_view(), name='expense-detail'),
     path('expenses/<int:pk>/receipt', ExpenseReceiptUploadView.as_view(), name='expense-receipt'),

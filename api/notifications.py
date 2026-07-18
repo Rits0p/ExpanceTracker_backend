@@ -15,9 +15,10 @@ logger = logging.getLogger(__name__)
 
 
 PREFERENCE_BY_EVENT = {
-    'budget_warning': 'budget_alerts',
-    'budget_exceeded': 'budget_alerts',
-    'recurring_expense_generated': 'recurring_reminders',
+    "budget_warning": "budget_alerts",
+    "budget_exceeded": "budget_alerts",
+    "recurring_expense_generated": "recurring_reminders",
+    "weekly_summary": "weekly_report",
 }
 
 
@@ -29,7 +30,7 @@ def _chunks(values, size):
 
 def _get_messaging():
     """Initialize Firebase only when a notification is actually sent."""
-    credential_path = getattr(settings, 'FIREBASE_SERVICE_ACCOUNT_PATH', '')
+    credential_path = getattr(settings, "FIREBASE_SERVICE_ACCOUNT_PATH", "")
     if not credential_path:
         return None
 
@@ -37,7 +38,7 @@ def _get_messaging():
     if not path.is_absolute():
         path = settings.BASE_DIR / path
     if not path.is_file():
-        logger.warning('Firebase service-account file is not available.')
+        logger.warning("Firebase service-account file is not available.")
         return None
 
     try:
@@ -50,40 +51,40 @@ def _get_messaging():
             firebase_admin.initialize_app(credentials.Certificate(str(path)))
         return messaging
     except Exception:
-        logger.exception('Firebase Cloud Messaging initialization failed.')
+        logger.exception("Firebase Cloud Messaging initialization failed.")
         return None
 
 
-def send_push_notification(user, *, event_type, title, body, url='/', data=None):
+def send_push_notification(user, *, event_type, title, body, url="/", data=None):
     """Send one non-sensitive notification to all of a user's current devices."""
     preference = PREFERENCE_BY_EVENT.get(event_type)
     user_settings, _ = UserSettings.objects.get_or_create(user=user)
     if preference and not getattr(user_settings, preference):
-        return {'sent': 0, 'skipped': 'preference_disabled'}
+        return {"sent": 0, "skipped": "preference_disabled"}
 
     messaging = _get_messaging()
     if messaging is None:
-        return {'sent': 0, 'skipped': 'firebase_not_configured'}
+        return {"sent": 0, "skipped": "firebase_not_configured"}
 
-    tokens = list(DeviceToken.objects.filter(user=user).values_list('token', flat=True))
+    tokens = list(DeviceToken.objects.filter(user=user).values_list("token", flat=True))
     if not tokens:
-        return {'sent': 0, 'skipped': 'no_devices'}
+        return {"sent": 0, "skipped": "no_devices"}
 
-    payload = {'eventType': event_type, 'url': url}
+    payload = {"eventType": event_type, "url": url}
     payload.update({str(key): str(value) for key, value in (data or {}).items()})
     sent = 0
     invalid_tokens = []
 
     for token_batch in _chunks(tokens, 500):
         message_kwargs = {
-            'tokens': token_batch,
-            'notification': messaging.Notification(title=title, body=body),
-            'data': payload,
+            "tokens": token_batch,
+            "notification": messaging.Notification(title=title, body=body),
+            "data": payload,
         }
         # FCM requires WebpushConfig links to be absolute HTTPS URLs. Local
         # development uses relative paths, so omit the optional click link.
-        if url.startswith('https://'):
-            message_kwargs['webpush'] = messaging.WebpushConfig(
+        if url.startswith("https://"):
+            message_kwargs["webpush"] = messaging.WebpushConfig(
                 fcm_options=messaging.WebpushFCMOptions(link=url),
             )
         message = messaging.MulticastMessage(
@@ -91,32 +92,49 @@ def send_push_notification(user, *, event_type, title, body, url='/', data=None)
         )
         try:
             result = messaging.send_each_for_multicast(message)
-        except Exception:
-            logger.exception('FCM delivery failed for user id=%s.', user.id)
+        except Exception as e:
+            logger.exception("FCM delivery failed for user id=%s: %s", user.id, str(e))
+            print(f"ERROR: FCM delivery failed for user id={user.id}: {e}")
             continue
 
         sent += result.success_count
         for token, response in zip(token_batch, result.responses):
             if response.success:
                 continue
-            error_code = getattr(response.exception, 'code', '') if response.exception else ''
-            normalized_code = str(error_code).lower().replace('_', '-').replace(' ', '-')
+            error_code = getattr(response.exception, "code", "") if response.exception else ""
+            normalized_code = str(error_code).lower().replace("_", "-").replace(" ", "-")
             if normalized_code in {
-                'registration-token-not-registered',
-                'invalid-argument',
-                'not-found',
-                'unregistered',
+                "registration-token-not-registered",
+                "invalid-argument",
+                "not-found",
+                "unregistered",
             }:
                 invalid_tokens.append(token)
+                logger.warning(
+                    "FCM token invalid/unregistered for user id=%s. Removing token. Error: %s",
+                    user.id,
+                    response.exception or error_code,
+                )
+                print(
+                    f"WARNING: FCM token invalid for user id={user.id}. Removing token. Error: {response.exception or error_code}"
+                )
             else:
-                logger.warning('FCM delivery failed for user id=%s: %s', user.id, error_code or 'unknown')
+                logger.warning(
+                    "FCM delivery failed for user id=%s: %s (exception: %s)",
+                    user.id,
+                    error_code or "unknown",
+                    response.exception,
+                )
+                print(
+                    f"ERROR: FCM delivery failed for user id={user.id}: {error_code or 'unknown'} - {response.exception}"
+                )
 
     if invalid_tokens:
         DeviceToken.objects.filter(token__in=invalid_tokens).delete()
-    return {'sent': sent, 'removed': len(invalid_tokens)}
+    return {"sent": sent, "removed": len(invalid_tokens)}
 
 
-def send_once(user, *, event_type, deduplication_key, title, body, url='/', data=None):
+def send_once(user, *, event_type, deduplication_key, title, body, url="/", data=None):
     """Deliver an event once per user and deduplication key."""
     try:
         NotificationEvent.objects.create(
@@ -126,7 +144,7 @@ def send_once(user, *, event_type, deduplication_key, title, body, url='/', data
             payload=data or {},
         )
     except IntegrityError:
-        return {'sent': 0, 'skipped': 'already_sent'}
+        return {"sent": 0, "skipped": "already_sent"}
     return send_push_notification(
         user,
         event_type=event_type,
@@ -146,30 +164,30 @@ def notify_budget_status(user, expense):
         year=expense_date.year,
     ).first()
     if not budget or budget.total_monthly_budget <= 0:
-        return {'sent': 0, 'skipped': 'no_budget'}
+        return {"sent": 0, "skipped": "no_budget"}
 
     month_start = expense_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    total = user.expenses.filter(expense_date__gte=month_start).aggregate(total=Sum('amount'))['total'] or 0
+    total = user.expenses.filter(expense_date__gte=month_start).aggregate(total=Sum("amount"))["total"] or 0
     usage = (total / budget.total_monthly_budget) * 100
-    day_key = f'{expense_date.year}-{expense_date.month:02d}-{expense_date.day:02d}'
+    day_key = f"{expense_date.year}-{expense_date.month:02d}-{expense_date.day:02d}"
     if usage >= 100:
         return send_once(
             user,
-            event_type='budget_exceeded',
+            event_type="budget_exceeded",
             deduplication_key=day_key,
-            title='Monthly budget exceeded',
-            body='Your monthly expense budget has been exceeded.',
-            url='/budget/',
-            data={'usage': round(float(usage), 2)},
+            title="Monthly budget exceeded",
+            body="Your monthly expense budget has been exceeded.",
+            url="/budget/",
+            data={"usage": round(float(usage), 2)},
         )
     if usage >= budget.warning_threshold:
         return send_once(
             user,
-            event_type='budget_warning',
+            event_type="budget_warning",
             deduplication_key=day_key,
-            title='Budget warning',
-            body='Your monthly spending has reached its warning threshold.',
-            url='/budget/',
-            data={'usage': round(float(usage), 2)},
+            title="Budget warning",
+            body="Your monthly spending has reached its warning threshold.",
+            url="/budget/",
+            data={"usage": round(float(usage), 2)},
         )
-    return {'sent': 0, 'skipped': 'below_threshold'}
+    return {"sent": 0, "skipped": "below_threshold"}

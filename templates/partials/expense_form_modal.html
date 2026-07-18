@@ -746,6 +746,10 @@
     };
 
     // Load categories on start
-    loadFormCategories();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadFormCategories);
+    } else {
+      loadFormCategories();
+    }
   })();
 </script>

@@ -2,11 +2,15 @@
 Views for ExpenseIQ API — Expense endpoints.
 Mirrors: /api/v1/expenses/*
 """
+import random
+from datetime import timedelta
+from django.utils import timezone
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from django.db.models import Q
 
-from ..models import Expense
+from ..models import Expense, Category
 from ..serializers import ExpenseSerializer
 from ..utils import ApiResponse, get_pagination_params
 
@@ -219,4 +223,67 @@ class ExpenseReceiptUploadView(APIView):
         return ApiResponse.success(
             ExpenseSerializer(expense).data,
             message='Receipt uploaded successfully'
+        )
+
+
+class ExpenseSeedView(APIView):
+    """POST /api/v1/expenses/seed — Seeds 250 test expenses for the user."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        
+        # Get user's available categories (names)
+        user_categories = list(Category.objects.filter(user=user).values_list('name', flat=True))
+        
+        # If no categories exist, make default ones
+        default_categories = ['Food', 'Transport', 'Entertainment', 'Utilities', 'Shopping', 'Health']
+        if not user_categories:
+            for cat_name in default_categories:
+                Category.objects.get_or_create(user=user, name=cat_name)
+            user_categories = default_categories
+            
+        # Seed titles matching category to look realistic
+        titles = {
+            'Food': ['Groceries', 'Dinner with friends', 'Subway lunch', 'Starbucks Coffee', 'Pizza Hut dinner', 'Fruit basket'],
+            'Transport': ['Uber ride', 'Gas refill', 'Metro ticket', 'Train journey', 'Parking ticket', 'Toll toll'],
+            'Entertainment': ['Netflix premium', 'Movie ticket', 'Spotify subscription', 'Arcade tokens', 'Video game', 'Concert ticket'],
+            'Utilities': ['Electricity bill', 'Water charges', 'Fiber internet bill', 'Mobile network bill', 'Gas bill'],
+            'Shopping': ['Winter shoes', 'Cotton T-shirt', 'Jeans wear', 'Book buy', 'Desk lamp', 'Airpods'],
+            'Health': ['Medicines', 'Dental clinic', 'Gym monthly fee', 'Eye checkup', 'Vitamins supplements']
+        }
+        
+        payment_methods = ['Credit Card', 'Debit Card', 'Cash', 'Bank Transfer', 'UPI']
+        
+        expenses_to_create = []
+        now = timezone.now()
+        
+        for i in range(250):
+            cat_name = random.choice(user_categories)
+            category_titles = titles.get(cat_name, ['Miscellaneous expense', 'Quick shop', 'Utility bill'])
+            title = random.choice(category_titles) + f" #{i+1}"
+            amount = random.randint(50, 4500)
+            method = random.choice(payment_methods)
+            
+            # Scatter over last 90 days
+            days_ago = random.randint(0, 90)
+            hours_ago = random.randint(0, 23)
+            minutes_ago = random.randint(0, 59)
+            expense_date = now - timedelta(days=days_ago, hours=hours_ago, minutes=minutes_ago)
+            
+            expenses_to_create.append(Expense(
+                user=user,
+                title=title,
+                amount=amount,
+                category=cat_name,
+                payment_method=method,
+                expense_date=expense_date,
+                notes=f"Seed transaction #{i+1} for visual pagination testing."
+            ))
+            
+        Expense.objects.bulk_create(expenses_to_create)
+        
+        return ApiResponse.success(
+            data={"count": 250},
+            message="Successfully seeded 250 test expenses"
         )

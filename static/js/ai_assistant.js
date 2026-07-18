@@ -329,7 +329,8 @@ function appendAiMessage(text, crudType = 'none', crudRecord = null) {
   el.innerHTML = `
     <div class="ai-msg-avatar">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16">
-        <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 12 18.469c-.59 0-1.17.16-1.678.462a.41.41 0 0 1-.31.039l-.548-.547z"/>
+        <path d="M12 2L14.85 9.15L22 12L14.85 14.85L12 22L9.15 14.85L2 12L9.15 9.15L12 2Z"/>
+        <path d="M18 5L19.25 8.25L22.5 9.5L19.25 10.75L18 14L16.75 10.75L13.5 9.5L16.75 8.25L18 5Z" opacity="0.6"/>
       </svg>
     </div>
     <div class="ai-msg-content">
@@ -691,7 +692,8 @@ function showTyping() {
   wrap.innerHTML = `
     <div class="ai-msg-avatar">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16">
-        <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 12 18.469c-.59 0-1.17.16-1.678.462a.41.41 0 0 1-.31.039l-.548-.547z"/>
+        <path d="M12 2L14.85 9.15L22 12L14.85 14.85L12 22L9.15 14.85L2 12L9.15 9.15L12 2Z"/>
+        <path d="M18 5L19.25 8.25L22.5 9.5L19.25 10.75L18 14L16.75 10.75L13.5 9.5L16.75 8.25L18 5Z" opacity="0.6"/>
       </svg>
     </div>
     <div class="ai-msg-content">

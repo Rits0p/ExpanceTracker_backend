@@ -348,3 +348,20 @@ class ExpenseReceiptUploadTests(BaseAPITestCase):
             format='multipart',
         )
         self.assert_error_response(response, 404)
+
+
+class ExpenseSeedAPITests(BaseAPITestCase):
+    """POST /api/v1/expenses/seed"""
+
+    def test_seed_expenses_success(self):
+        """Should seed 250 test expenses with available categories."""
+        initial_count = Expense.objects.filter(user=self.test_user).count()
+
+        response = self.client.post('/api/v1/expenses/seed', format='json')
+        data = self.assert_success_response(response)
+        
+        self.assertEqual(data['message'], 'Successfully seeded 250 test expenses')
+        self.assertEqual(data['data']['count'], 250)
+
+        final_count = Expense.objects.filter(user=self.test_user).count()
+        self.assertEqual(final_count, initial_count + 250)

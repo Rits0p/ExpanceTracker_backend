@@ -26,9 +26,12 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ['id', 'name', 'icon', 'color', 'monthlyBudget', 'createdAt', 'updatedAt']
 
+    def validate_monthlyBudget(self, value):
+        return round(value, 2)
+
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        ret['monthlyBudget'] = float(ret.get('monthlyBudget', 0) or 0)
+        ret['monthlyBudget'] = round(float(ret.get('monthlyBudget', 0) or 0), 2)
         return ret
 
 
@@ -58,7 +61,7 @@ class RecurringExpenseSerializer(serializers.ModelSerializer):
     def validate_amount(self, value):
         if value <= 0:
             raise serializers.ValidationError('Amount must be greater than 0.')
-        return value
+        return round(value, 2)
 
     def validate(self, data):
         request = self.context.get('request')
@@ -71,7 +74,7 @@ class RecurringExpenseSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        ret['amount'] = float(ret.get('amount', 0) or 0)
+        ret['amount'] = round(float(ret.get('amount', 0) or 0), 2)
         ret['_id'] = str(ret['id'])
         return ret
 
@@ -102,9 +105,12 @@ class ExpenseSerializer(serializers.ModelSerializer):
             'createdAt', 'updatedAt',
         ]
 
+    def validate_amount(self, value):
+        return round(value, 2)
+
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        ret['amount'] = float(ret.get('amount', 0) or 0)
+        ret['amount'] = round(float(ret.get('amount', 0) or 0), 2)
         # Add _id alias for frontend compatibility
         ret['_id'] = str(ret['id'])
         return ret
@@ -136,12 +142,24 @@ class BudgetSerializer(serializers.ModelSerializer):
             'createdAt', 'updatedAt'
         ]
 
+    def validate_totalMonthlyBudget(self, value):
+        return round(value, 2)
+
+    def validate_dailyBudget(self, value):
+        return round(value, 2)
+
+    def validate_weeklyBudget(self, value):
+        return round(value, 2)
+
+    def validate_yearlyBudget(self, value):
+        return round(value, 2)
+
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        ret['totalMonthlyBudget'] = float(ret.get('totalMonthlyBudget', 0) or 0)
-        ret['dailyBudget'] = float(ret.get('dailyBudget', 0) or 0)
-        ret['weeklyBudget'] = float(ret.get('weeklyBudget', 0) or 0)
-        ret['yearlyBudget'] = float(ret.get('yearlyBudget', 0) or 0)
+        ret['totalMonthlyBudget'] = round(float(ret.get('totalMonthlyBudget', 0) or 0), 2)
+        ret['dailyBudget'] = round(float(ret.get('dailyBudget', 0) or 0), 2)
+        ret['weeklyBudget'] = round(float(ret.get('weeklyBudget', 0) or 0), 2)
+        ret['yearlyBudget'] = round(float(ret.get('yearlyBudget', 0) or 0), 2)
         ret['_id'] = str(ret['id'])
         return ret
 
