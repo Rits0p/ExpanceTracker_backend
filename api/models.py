@@ -1,6 +1,5 @@
 """
 Django models for ExpenseIQ — migrated from Mongoose schemas.
-Using SQLite as the database backend.
 """
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator

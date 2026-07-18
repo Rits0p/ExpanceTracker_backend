@@ -39,12 +39,14 @@ def generate_recurring_expenses(user=None):
         queryset = queryset.filter(user=user)
 
     created = []
+    deactivated = []
 
     with transaction.atomic():
         for re in queryset:
             # Skip if end_date is in the past
             if re.end_date and re.end_date < today:
                 RecurringExpense.objects.filter(id=re.id).update(is_active=False)
+                deactivated.append(re)
                 continue
 
             # Prevent duplicate generation for the same due date
@@ -76,6 +78,7 @@ def generate_recurring_expenses(user=None):
                     next_due_date=new_due_date,
                     is_active=False,
                 )
+                deactivated.append(re)
             else:
                 RecurringExpense.objects.filter(id=re.id).update(
                     next_due_date=new_due_date,
@@ -85,8 +88,8 @@ def generate_recurring_expenses(user=None):
 
     # Deliver only after the database transaction is committed, so a push never
     # describes an expense that later rolls back.
-    if created:
-        from .notifications import send_push_notification
+    if created or deactivated:
+        from .notifications import send_push_notification, notify_recurring_expense_ended
 
         def dispatch_notifications():
             for expense in created:
@@ -98,6 +101,8 @@ def generate_recurring_expenses(user=None):
                     url="/expenses/",
                     data={"expenseId": expense.id},
                 )
+            for re in deactivated:
+                notify_recurring_expense_ended(re.user, re)
 
         transaction.on_commit(dispatch_notifications)
 

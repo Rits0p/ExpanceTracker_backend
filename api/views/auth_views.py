@@ -166,6 +166,13 @@ class JWTRegisterView(APIView):
             username=username, email=email, password=password
         )
 
+        # Send welcome notification
+        from ..notifications import notify_auth_event
+        notify_auth_event(user, event_type="account_created",
+                          title="Account created",
+                          body="Welcome! Your ExpenseTracker account has been created.",
+                          url="/settings/")
+
         # Generate JWT tokens
         tokens = get_tokens_for_user(user)
 
@@ -222,6 +229,13 @@ class JWTLoginView(APIView):
 
         # Also log into Django session (so template pages work too)
         login(request, authenticated_user)
+
+        # Send login notification (new device / session)
+        from ..notifications import notify_auth_event
+        notify_auth_event(authenticated_user, event_type="auth_new_device_login",
+                          title="New login",
+                          body=f"Your account was accessed from {request.META.get('REMOTE_ADDR', 'unknown IP')}.",
+                          url="/settings/")
 
         # Generate JWT tokens
         tokens = get_tokens_for_user(user)
@@ -376,6 +390,12 @@ class JWTChangePasswordView(APIView):
 
         user.set_password(new_pw)
         user.save()
+
+        from ..notifications import notify_auth_event
+        notify_auth_event(user, event_type="auth_password_changed",
+                          title="Password changed",
+                          body="Your account password was changed successfully.",
+                          url="/settings/")
 
         # Issue fresh tokens after password change
         tokens = get_tokens_for_user(user)

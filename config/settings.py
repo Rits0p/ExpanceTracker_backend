@@ -200,7 +200,9 @@ JWT_COOKIE_NAMES = {
 
 # Firebase Cloud Messaging. The web values are public Firebase configuration;
 # the service-account path must point to a private JSON key outside source control.
+# Alternatively, provide the entire service-account JSON as FIREBASE_SERVICE_ACCOUNT_JSON.
 FIREBASE_SERVICE_ACCOUNT_PATH = os.getenv('FIREBASE_SERVICE_ACCOUNT_PATH', '')
+FIREBASE_SERVICE_ACCOUNT_JSON = os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON', '')
 FIREBASE_WEB_CONFIG = {
     'apiKey': os.getenv('FIREBASE_API_KEY', ''),
     'authDomain': os.getenv('FIREBASE_AUTH_DOMAIN', ''),

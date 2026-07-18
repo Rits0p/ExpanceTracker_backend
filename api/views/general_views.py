@@ -44,6 +44,9 @@ class CategoryListCreateView(APIView):
         serializer = CategorySerializer(data=request.data)
         if serializer.is_valid():
             cat = serializer.save(user=request.user)
+            from ..notifications import notify_category_created
+
+            notify_category_created(request.user, cat.name)
             return ApiResponse.created(
                 CategorySerializer(cat).data,
                 message='Category created'
@@ -74,7 +77,11 @@ class CategoryDetailView(APIView):
             cat = Category.objects.get(pk=pk, user=request.user)
         except Category.DoesNotExist:
             return ApiResponse.error('Category not found', 404)
+        cat_name = cat.name
         cat.delete()
+        from ..notifications import notify_category_deleted
+
+        notify_category_deleted(request.user, cat_name)
         return ApiResponse.success(message='Category deleted')
 
 
@@ -157,6 +164,9 @@ class BudgetView(APIView):
                 'yearly_budget': yearly,
             }
         )
+        from ..notifications import notify_budget_set
+
+        notify_budget_set(request.user, int(month), int(year), str(total))
         return ApiResponse.success(
             BudgetSerializer(budget).data,
             message='Budget set successfully'
@@ -259,6 +269,9 @@ class ReportCSVView(APIView):
             format='csv',
             total_expense=total_expense,
         )
+
+        from ..notifications import notify_report_generated
+        notify_report_generated(request.user, "csv", start, end)
 
         response = HttpResponse(output.getvalue(), content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename=expenses_report.csv'
@@ -366,6 +379,9 @@ class ReportPDFView(APIView):
             format='pdf',
             total_expense=total_expense,
         )
+
+        from ..notifications import notify_report_generated
+        notify_report_generated(request.user, "pdf", start, end)
 
         buffer.seek(0)
         response = HttpResponse(buffer.read(), content_type='application/pdf')
