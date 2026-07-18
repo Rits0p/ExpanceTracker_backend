@@ -8,7 +8,9 @@ from rest_framework.views import APIView
 
 from ..models import DeviceToken
 from ..serializers import DeviceTokenSerializer
+from ..notifications import send_push_notification
 from ..utils import ApiResponse
+
 
 
 class FirebaseConfigView(APIView):
@@ -48,7 +50,6 @@ class DeviceTokenListCreateView(APIView):
         # Keep only the 3 most recent tokens per user to prevent stale token buildup
         recent_ids = DeviceToken.objects.filter(user=request.user).order_by('-last_seen_at').values_list('id', flat=True)[:3]
         DeviceToken.objects.filter(user=request.user).exclude(id__in=list(recent_ids)).delete()
-
         return ApiResponse.success(
             DeviceTokenSerializer(device).data,
             status_code=201 if created else 200,
@@ -69,18 +70,16 @@ class NotificationTestView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        from ..notifications import _get_messaging, send_push_notification
+        from ..notifications import _get_messaging
 
         if _get_messaging() is None:
             return ApiResponse.error("Firebase server messaging is not configured.", 503)
 
-        transaction.on_commit(
-            lambda: send_push_notification(
-                request.user,
-                event_type="test",
-                title="ExpenseTracker notifications enabled",
-                body="This device can now receive expense notifications.",
-                url="/settings/",
-            )
+        result = send_push_notification(
+            request.user,
+            event_type="test",
+            title="ExpenseTracker notifications enabled",
+            body="This device can now receive expense notifications.",
+            url="/settings/",
         )
-        return ApiResponse.success(message="Test notification dispatch initiated")
+        return ApiResponse.success(result, message="Test notification dispatched")

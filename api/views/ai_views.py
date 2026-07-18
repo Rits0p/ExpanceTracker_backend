@@ -12,25 +12,25 @@ Flow:
   5. Return message + crud_record to frontend
 """
 
-import os
-import re
 import json
 import logging
+import os
+import re
 from datetime import datetime
 
-from django.db.models import Sum
-from rest_framework.views import APIView
-from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 import requests
+from django.db.models import Sum
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
+from rest_framework.views import APIView
 
-from ..utils import ApiResponse
-from ..models import Expense, Budget, Category, AIChatMessage
+from ..authentication import CookieJWTAuthentication
+from ..models import AIChatMessage, Budget, Category, Expense
 from ..serializers import (
-    ExpenseSerializer,
     BudgetSerializer,
     CategorySerializer,
+    ExpenseSerializer,
 )
-from ..authentication import CookieJWTAuthentication
+from ..utils import ApiResponse
 
 logger = logging.getLogger(__name__)
 
@@ -244,6 +244,28 @@ def _execute_crud(user, intent: str, data: dict) -> dict:
     """
 
     def ok(msg, crud_type, record=None):
+        if crud_type in ["created", "updated", "deleted"]:
+            try:
+                from django.db import transaction
+                from api.notifications import send_push_notification
+                action_word = crud_type
+
+                def deferred_send():
+                    try:
+                        send_push_notification(
+                            user,
+                            event_type="ai_crud_performed",
+                            title="AI Assistant Action",
+                            body=f"The AI assistant successfully performed a {action_word} action.",
+                            url="/",
+                            data={"crudType": crud_type}
+                        )
+                    except Exception:
+                        pass
+
+                transaction.on_commit(deferred_send)
+            except Exception:
+                pass
         return {"message": msg, "crud_type": crud_type, "crud_record": record, "ok": True}
 
     def err(msg):
@@ -290,7 +312,11 @@ def _execute_crud(user, intent: str, data: dict) -> dict:
                 "category": e.category, "payment_method": e.payment_method,
                 "expense_date": e.expense_date.isoformat(),
             }
-            return ok(f"✅ Added **{e.title}** — ₹{e.amount} ({e.category})", "created", record)
+            if e.is_recurring:
+                msg = f"✅ Added {e.recurring_type or 'monthly'} recurring **{e.title}** — ₹{e.amount} ({e.category})"
+            else:
+                msg = f"✅ Added **{e.title}** — ₹{e.amount} ({e.category})"
+            return ok(msg, "created", record)
 
         # ── EDIT EXPENSE ──────────────────────────────────────────────
         elif intent == "edit_expense":
@@ -322,7 +348,7 @@ def _execute_crud(user, intent: str, data: dict) -> dict:
             # Check if update attempts to set/change it to daily or weekly recurring expense
             new_is_recurring = fields.get("is_recurring", e.is_recurring)
             new_rec_type = fields.get("recurring_type", e.recurring_type)
-            
+
             new_is_recur_bool = False
             if isinstance(new_is_recurring, str):
                 new_is_recur_bool = new_is_recurring.lower() in ("true", "1", "yes")
@@ -598,7 +624,7 @@ def _execute_crud(user, intent: str, data: dict) -> dict:
             theme = data.get("theme", "dark").lower()
             if theme not in ["light", "dark"]:
                 theme = "dark"
-            
+
             # Save it to the user's settings if possible
             from ..models import UserSettings
             try:
@@ -718,7 +744,7 @@ class AIAssistantView(APIView):
             user = User.objects.first()
             if not user:
                 return ApiResponse.error("No user found. Please log in.", 401)
-        
+
         db_messages = AIChatMessage.objects.filter(user=user).order_by('created_at')
         history = []
         for msg in db_messages:
@@ -742,7 +768,7 @@ class AIAssistantView(APIView):
             user = User.objects.first()
             if not user:
                 return ApiResponse.error("No user found. Please log in.", 401)
-        
+
         AIChatMessage.objects.filter(user=user).delete()
         return ApiResponse.success(message="History cleared successfully")
 

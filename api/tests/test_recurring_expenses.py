@@ -312,7 +312,7 @@ class RecurringExpenseFrequencyTests(BaseAPITestCase):
         if expected_delta_days:
             expected = start + timedelta(days=expected_delta_days)
         else:
-            from api.services import _add_months
+            from api.utils import _add_months
             expected = _add_months(start, expected_months)
 
         self.assertEqual(re.next_due_date, expected)

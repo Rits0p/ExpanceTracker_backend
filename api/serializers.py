@@ -2,6 +2,7 @@
 Serializers for ExpenseIQ API — matching the Node.js request/response format.
 """
 from rest_framework import serializers
+
 from .models import (
     Budget,
     Category,
@@ -137,8 +138,8 @@ class BudgetSerializer(serializers.ModelSerializer):
     class Meta:
         model = Budget
         fields = [
-            'id', 'month', 'year', 'dailyBudget', 'weeklyBudget', 
-            'totalMonthlyBudget', 'yearlyBudget', 'warningThreshold', 
+            'id', 'month', 'year', 'dailyBudget', 'weeklyBudget',
+            'totalMonthlyBudget', 'yearlyBudget', 'warningThreshold',
             'createdAt', 'updatedAt'
         ]
 
@@ -203,6 +204,7 @@ class ReportSerializer(serializers.ModelSerializer):
 # ───── User Settings Serializer ─────
 from .models import UserSettings
 
+
 class UserSettingsSerializer(serializers.ModelSerializer):
     sidebarCollapsed = serializers.BooleanField(source='sidebar_collapsed', required=False)
     compactMode = serializers.BooleanField(source='compact_mode', required=False)
@@ -258,10 +260,14 @@ class ChatSerializer(serializers.ModelSerializer):
 class DeviceTokenSerializer(serializers.ModelSerializer):
     """Registers a device token without ever returning its secret value."""
 
+    deviceName = serializers.CharField(source='device_name', required=False, allow_blank=True)
+    createdAt = serializers.DateTimeField(source='created_at', read_only=True)
+    updatedAt = serializers.DateTimeField(source='updated_at', read_only=True)
+
     class Meta:
         model = DeviceToken
-        fields = ['id', 'token', 'platform', 'device_name', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        fields = ['id', 'token', 'platform', 'deviceName', 'createdAt', 'updatedAt']
+        read_only_fields = ['id', 'createdAt', 'updatedAt']
         extra_kwargs = {
             'token': {'write_only': True, 'min_length': 20},
         }
@@ -271,4 +277,12 @@ class DeviceTokenSerializer(serializers.ModelSerializer):
         if len(token) > 4096:
             raise serializers.ValidationError('Invalid device token.')
         return token
+
+    def to_internal_value(self, data):
+        # Accept both snake_case and camelCase for device_name
+        if 'device_name' in data and 'deviceName' not in data:
+            data = data.copy()
+            data['deviceName'] = data.pop('device_name')
+        return super().to_internal_value(data)
+
 

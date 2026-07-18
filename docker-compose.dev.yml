@@ -29,7 +29,7 @@ services:
     container_name: expensetracker_web_dev
     restart: unless-stopped
     env_file:
-      - .env.docker
+      - .env
     environment:
       DEBUG: "True"
       USE_MYSQL: "True"

@@ -3,22 +3,20 @@ Authentication views for ExpenseIQ.
 - Session-based auth for template pages (login_view, register_view, etc.)
 - JWT API endpoints for programmatic auth (/api/v1/auth/*)
 """
-from django.contrib.auth import login, logout, authenticate
-from django.contrib.auth.models import User
-from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-
-from rest_framework.views import APIView
+from django.shortcuts import redirect, render
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
 
+from ..authentication import CookieJWTAuthentication, clear_token_cookies, get_tokens_for_user, set_token_cookies
 from ..utils import ApiResponse
-from ..authentication import CookieJWTAuthentication, get_tokens_for_user, set_token_cookies, clear_token_cookies
-
 
 # ═══════════════════════════════════════════════
 #  TEMPLATE-BASED AUTH (Session — unchanged)
@@ -220,12 +218,34 @@ class JWTLoginView(APIView):
         if user is None:
             return ApiResponse.error('Invalid credentials', 401)
 
+        # Check if user is active first, but verify password to prevent enum/timing attacks
+        if not user.is_active:
+            if not user.check_password(password):
+                return ApiResponse.error('Invalid credentials', 401)
+
+            try:
+                from django.db import transaction
+                from api.notifications import send_push_notification
+
+                def deferred_send():
+                    try:
+                        send_push_notification(
+                            user,
+                            event_type="auth_account_disabled",
+                            title="Account disabled",
+                            body="Your ExpenseTracker account has been disabled.",
+                        )
+                    except Exception:
+                        pass
+
+                transaction.on_commit(deferred_send)
+            except Exception:
+                pass
+            return ApiResponse.error('Account is disabled', 403)
+
         authenticated_user = authenticate(request, username=user.username, password=password)
         if authenticated_user is None:
             return ApiResponse.error('Invalid credentials', 401)
-
-        if not authenticated_user.is_active:
-            return ApiResponse.error('Account is disabled', 403)
 
         # Also log into Django session (so template pages work too)
         login(request, authenticated_user)

@@ -47,12 +47,14 @@ class DeviceTokenTests(BaseAPITestCase):
         self.assertTrue(DeviceToken.objects.filter(pk=device.id).exists())
 
 
-from unittest.mock import patch
-from django.core.management import call_command
-from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
-from api.models import UserSettings, Expense
+from unittest.mock import patch
+
+from django.core.management import call_command
+from django.utils import timezone
+
+from api.models import Expense, UserSettings
 
 
 class NotificationServiceAndCommandTests(BaseAPITestCase):
@@ -106,16 +108,18 @@ class NotificationServiceAndCommandTests(BaseAPITestCase):
             response = self.client.post("/api/v1/notifications/test")
             self.assert_error_response(response, 503)
 
-    def test_notification_test_view_success_async(self):
-        # Mock _get_messaging to return a mock and send_push_notification to be mocked
+    def test_notification_test_view_success_sync(self):
+        # Mock _get_messaging and send_push_notification so we test the endpoint without FCM
         with (
             patch("api.notifications._get_messaging") as mock_get_messaging,
             patch("api.views.notification_views.send_push_notification") as mock_send,
         ):
             mock_get_messaging.return_value = object()
+            mock_send.return_value = {"sent": 1, "removed": 0}
             response = self.client.post("/api/v1/notifications/test")
-            self.assert_success_response(response, 200)
-            # The test should return immediately, while spawning a background thread
+            data = self.assert_success_response(response, 200)
+            self.assertEqual(data["data"]["sent"], 1)
+            mock_send.assert_called_once()
 
     def test_firebase_messaging_service_worker_503(self):
         # If config is incomplete, it returns 503
@@ -123,3 +127,140 @@ class NotificationServiceAndCommandTests(BaseAPITestCase):
             response = self.client.get("/firebase-messaging-sw.js")
             self.assertEqual(response.status_code, 503)
             self.assertIn(b"Firebase messaging is not configured", response.content)
+
+
+class NewNotificationTriggerTests(BaseAPITestCase):
+    @patch("api.notifications.send_push_notification")
+    def test_auth_password_changed_notification(self, mock_send):
+        # The user is already pre-authenticated in self.client
+        # Let's change the password from ApiTestPassword123 to NewPassword123!
+        response = self.client.post(
+            "/api/v1/auth/change-password",
+            {
+                "currentPassword": "ApiTestPassword123",
+                "newPassword": "NewPassword123!",
+                "confirmPassword": "NewPassword123!"
+            },
+            format="json"
+        )
+        self.assert_success_response(response, 200)
+        mock_send.assert_called_with(
+            self.test_user,
+            event_type="auth_password_changed",
+            title="Password changed",
+            body="Your account password was changed successfully.",
+            url="/settings/"
+        )
+
+    @patch("api.notifications.send_push_notification")
+    def test_auth_account_disabled_notification(self, mock_send):
+        self.test_user.is_active = False
+        self.test_user.save()
+
+        with patch("django.db.transaction.on_commit") as mock_on_commit:
+            response = self.client.post(
+                "/api/v1/auth/login",
+                {
+                    "identifier": "apitestuser",
+                    "password": "ApiTestPassword123"
+                },
+                format="json"
+            )
+            self.assert_error_response(response, 403)
+            mock_on_commit.assert_called_once()
+            mock_send.assert_not_called()
+
+            # Retrieve and execute callback
+            callback = mock_on_commit.call_args[0][0]
+            callback()
+
+            mock_send.assert_called_with(
+                self.test_user,
+                event_type="auth_account_disabled",
+                title="Account disabled",
+                body="Your ExpenseTracker account has been disabled."
+            )
+
+    @patch("api.notifications.send_push_notification")
+    def test_report_generated_notification(self, mock_send):
+        with patch("django.db.transaction.on_commit") as mock_on_commit:
+            response = self.client.post(
+                "/api/v1/reports/csv",
+                {
+                    "startDate": "2026-07-01T00:00:00Z",
+                    "endDate": "2026-07-31T23:59:59Z"
+                },
+                format="json"
+            )
+            self.assertEqual(response.status_code, 200)
+            mock_on_commit.assert_called_once()
+            mock_send.assert_not_called()
+
+            # Retrieve and execute callback
+            callback = mock_on_commit.call_args[0][0]
+            callback()
+
+            mock_send.assert_called_with(
+                self.test_user,
+                event_type="report_generated",
+                title="Csv report generated",
+                body="Your csv report (2026-07-01 – 2026-07-31) is ready.",
+                url="/reports/",
+                data={
+                    "reportType": "csv",
+                    "startDate": "2026-07-01",
+                    "endDate": "2026-07-31"
+                }
+            )
+
+    @patch("api.notifications.send_push_notification")
+    @patch("api.notifications.send_once")
+    def test_budget_notifications_triggered_on_expense(self, mock_send_once, mock_send):
+        from datetime import datetime as dt
+        from decimal import Decimal
+
+        from django.utils import timezone
+
+        from api.models import Budget, Category, Expense
+        from api.notifications import (
+            notify_budget_status,
+            notify_category_budget_exceeded,
+            notify_large_expense,
+        )
+
+        # Retrieve cat_food and update its budget
+        cat = Category.objects.filter(user=self.test_user, name="Food").first()
+        cat.monthly_budget = Decimal("100.00")
+        cat.save()
+
+        budget = Budget.objects.filter(user=self.test_user, month=7, year=2026).first()
+        if budget:
+            budget.total_monthly_budget = Decimal("500.00")
+            budget.warning_threshold = 80
+            budget.save()
+        else:
+            budget = Budget.objects.create(
+                user=self.test_user,
+                month=7,
+                year=2026,
+                total_monthly_budget=Decimal("500.00"),
+                warning_threshold=80
+            )
+
+        expense = Expense.objects.create(
+            user=self.test_user,
+            title="Dinner",
+            amount=Decimal("300.00"),
+            category="Food",
+            expense_date=timezone.make_aware(dt(2026, 7, 15, 12, 0))
+        )
+
+        notify_budget_status(self.test_user, expense)
+        notify_category_budget_exceeded(self.test_user, expense)
+        notify_large_expense(self.test_user, expense)
+
+        calls = [call[1]["event_type"] for call in mock_send_once.call_args_list]
+        self.assertIn("large_expense_created", calls)
+        self.assertIn("category_budget_exceeded", calls)
+
+

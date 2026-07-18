@@ -1,6 +1,5 @@
 """Root URL configuration for ExpenseIQ Django backend."""
 
-import os
 import sys
 import time
 from pathlib import Path
@@ -9,25 +8,26 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from django.contrib import admin
-from django.urls import path, include
-from django.http import JsonResponse
-from django.http import HttpResponse
+from datetime import UTC
+
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+from django.http import HttpResponse, JsonResponse
+from django.urls import include, path
 
 _start_time = time.time()
 
 
 def health_check(request):
     """Health check endpoint matching Node.js format."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     return JsonResponse(
         {
             "status": "ok",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "uptime": round(time.time() - _start_time, 2),
         }
     )
@@ -46,11 +46,29 @@ def firebase_messaging_service_worker(request):
 importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js');
 firebase.initializeApp({config!r});
 const messaging = firebase.messaging();
-// Notification payloads are displayed by FCM in the background. The
-// WebpushConfig link supplied by the server defines the click destination.
+// Handle data-only messages received in the background by showing a
+// visible notification so the user is always informed.
+messaging.onBackgroundMessage((payload) => {{
+  if (payload.notification) {{
+    return;
+  }}
+  const data = payload.data || {{}};
+  const title = data.title || 'ExpenseTracker';
+  const body = data.body || 'You have a new notification.';
+  return self.registration.showNotification(title, {{
+    body,
+    icon: '/static/images/avatar.png',
+    data: {{ url: data.url || '/' }},
+  }});
+}});
+// When the user clicks a notification, navigate to the relevant page.
+// FCM may nest custom data under different paths depending on the message
+// type, so we check multiple locations for the target URL.
 self.addEventListener('notificationclick', (event) => {{
   event.notification.close();
-  const url = event.notification.data?.url || '/';
+  const data = event.notification.data || {{}};
+  const fcmData = data.FCM_MSG?.data || {{}};
+  const url = data.url || fcmData.url || '/';
   event.waitUntil(
     clients.matchAll({{ type: 'window', includeUncontrolled: true }}).then((windowClients) => {{
       for (const client of windowClients) {{
@@ -69,24 +87,23 @@ self.addEventListener('notificationclick', (event) => {{
     return HttpResponse(script, content_type="application/javascript")
 
 
+from django.contrib.auth.decorators import login_required
 from django.views.generic import TemplateView
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
-from django.contrib.auth.decorators import login_required
 from api.views.auth_views import (
-    login_view,
-    register_view,
-    logout_view,
-    profile_view,
-    password_reset_view,
-    JWTRegisterView,
+    JWTChangePasswordView,
     JWTLoginView,
-    JWTRefreshView,
     JWTLogoutView,
     JWTMeView,
-    JWTChangePasswordView,
+    JWTRefreshView,
+    JWTRegisterView,
+    login_view,
+    logout_view,
+    password_reset_view,
+    profile_view,
+    register_view,
 )
-from api.views.general_views import index_view
 from api.views.general_views import index_view
 
 urlpatterns = [

@@ -31,7 +31,7 @@ services:
     container_name: expensetracker_web
     restart: unless-stopped
     env_file:
-      - .env.docker
+      - .env
     environment:
       DJANGO_SETTINGS_MODULE: config.settings
       USE_MYSQL: "True"
@@ -42,7 +42,7 @@ services:
     volumes:
       - media_files:/app/media
       - static_files:/app/staticfiles
-      - ./push_notification/expense-tracker-cdd62-firebase-adminsdk-fbsvc-ec7a6055d2.json:/app/push_notification/expense-tracker-cdd62-firebase-adminsdk-fbsvc-ec7a6055d2.json:ro
+      - ./push_notification/exp-track-7420b-firebase-adminsdk-fbsvc-c382745706.json:/app/push_notification/exp-track-7420b-firebase-adminsdk-fbsvc-c382745706.json:ro
     depends_on:
       db:
         condition: service_healthy

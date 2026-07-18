@@ -27,6 +27,7 @@ PREFERENCE_BY_EVENT = {
     "auth_password_changed": "budget_alerts",
     "auth_rate_limited": "budget_alerts",
     "auth_account_disabled": "budget_alerts",
+    "auth_token_refresh_failed": "budget_alerts",
     "account_created": "budget_alerts",
     "recurring_expense_generated": "recurring_reminders",
     "recurring_expense_ended": "recurring_reminders",
@@ -35,11 +36,18 @@ PREFERENCE_BY_EVENT = {
     "spending_trend_alert": "weekly_report",
     "daily_spending_tally": "weekly_report",
     "report_generated": "weekly_report",
-    "ai_crud_performed": "weekly_report",
+    "ai_crud_performed": "budget_alerts",
     "category_created": "weekly_report",
     "category_deleted": "weekly_report",
     "budget_set": "weekly_report",
     "budget_deleted": "weekly_report",
+}
+
+MANDATORY_EVENT_ALLOWLIST = {
+    "test",
+    "auth_account_disabled",
+    "auth_password_changed",
+    "auth_token_refresh_failed",
 }
 
 
@@ -74,7 +82,7 @@ def _get_messaging():
             except (json.JSONDecodeError, OSError):
                 logger.warning("Firebase service-account file is not readable.")
         else:
-            logger.warning("Firebase service-account file does not exist at %s.", path)
+            logger.warning("Firebase service-account file is not available at: %s", path.absolute())
     if not credential_source:
         return None
 
@@ -94,7 +102,11 @@ def send_push_notification(user, *, event_type, title, body, url="/", data=None)
     logger.info("send_push_notification: user=%s event=%s title=%s", user.id, event_type, title)
     preference = PREFERENCE_BY_EVENT.get(event_type)
     user_settings, _ = UserSettings.objects.get_or_create(user=user)
-    if preference and not getattr(user_settings, preference):
+    if event_type in MANDATORY_EVENT_ALLOWLIST:
+        pass
+    elif preference is None:
+        return {"sent": 0, "skipped": "unknown_event_type"}
+    elif not getattr(user_settings, preference):
         logger.info("Skipped notification for user=%s: preference_disabled (%s)", user.id, preference)
         return {"sent": 0, "skipped": "preference_disabled"}
 
@@ -181,7 +193,7 @@ def send_push_notification(user, *, event_type, title, body, url="/", data=None)
 def send_once(user, *, event_type, deduplication_key, title, body, url="/", data=None):
     """Deliver an event once per user and deduplication key."""
     try:
-        NotificationEvent.objects.create(
+        event = NotificationEvent.objects.create(
             user=user,
             event_type=event_type,
             deduplication_key=deduplication_key,
@@ -189,7 +201,7 @@ def send_once(user, *, event_type, deduplication_key, title, body, url="/", data
         )
     except IntegrityError:
         return {"sent": 0, "skipped": "already_sent"}
-    return send_push_notification(
+    result = send_push_notification(
         user,
         event_type=event_type,
         title=title,
@@ -197,6 +209,9 @@ def send_once(user, *, event_type, deduplication_key, title, body, url="/", data
         url=url,
         data=data,
     )
+    if result.get("sent", 0) == 0:
+        event.delete()
+    return result
 
 
 def _get_currency_symbol(user):
@@ -212,9 +227,6 @@ def notify_budget_status(user, expense):
         month=expense_date.month,
         year=expense_date.year,
     ).first()
-    if not budget or budget.total_monthly_budget <= 0:
-        return {"sent": 0, "skipped": "no_budget"}
-
     sym = _get_currency_symbol(user)
     today = expense_date.replace(hour=0, minute=0, second=0, microsecond=0)
     day_key = f"{expense_date.year}-{expense_date.month:02d}-{expense_date.day:02d}"

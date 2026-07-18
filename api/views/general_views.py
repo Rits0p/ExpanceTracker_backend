@@ -4,18 +4,18 @@ Mirrors: /api/v1/categories/*, /api/v1/budget/*, /api/v1/reports/*
 """
 import csv
 import io
-from datetime import datetime, timezone as dt_timezone
+from datetime import UTC, datetime
 
-from rest_framework.views import APIView
-from django.http import HttpResponse
-from django.db.models import Sum, Count
-from django.utils import timezone
-
-from ..models import Category, Budget, Expense, Report, UserSettings
-from ..serializers import CategorySerializer, BudgetSerializer, ReportSerializer, UserSettingsSerializer
-from ..utils import ApiResponse, get_start_of_month, get_end_of_month, get_pagination_params
-from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Sum
+from django.http import HttpResponse
+from django.shortcuts import render
+from django.utils import timezone
+from rest_framework.views import APIView
+
+from ..models import Budget, Category, Expense, Report, UserSettings
+from ..serializers import BudgetSerializer, CategorySerializer, ReportSerializer, UserSettingsSerializer
+from ..utils import ApiResponse, get_end_of_month, get_pagination_params, get_start_of_month
 
 
 # ═══════════════════════════════════════════
@@ -104,11 +104,11 @@ class BudgetView(APIView):
             return ApiResponse.error('Budget not found', 404)
 
         # Calculate current spending for the month
-        start = datetime(int(year), int(month), 1, tzinfo=dt_timezone.utc)
+        start = datetime(int(year), int(month), 1, tzinfo=UTC)
         if int(month) == 12:
-            end = datetime(int(year) + 1, 1, 1, tzinfo=dt_timezone.utc)
+            end = datetime(int(year) + 1, 1, 1, tzinfo=UTC)
         else:
-            end = datetime(int(year), int(month) + 1, 1, tzinfo=dt_timezone.utc)
+            end = datetime(int(year), int(month) + 1, 1, tzinfo=UTC)
 
         current_spent = Expense.objects.filter(
             user=request.user,
@@ -270,8 +270,14 @@ class ReportCSVView(APIView):
             total_expense=total_expense,
         )
 
-        from ..notifications import notify_report_generated
-        notify_report_generated(request.user, "csv", start, end)
+        try:
+            from django.db import transaction
+            from ..notifications import notify_report_generated
+            transaction.on_commit(
+                lambda: notify_report_generated(request.user, "csv", start, end)
+            )
+        except Exception:
+            pass
 
         response = HttpResponse(output.getvalue(), content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename=expenses_report.csv'
@@ -380,8 +386,14 @@ class ReportPDFView(APIView):
             total_expense=total_expense,
         )
 
-        from ..notifications import notify_report_generated
-        notify_report_generated(request.user, "pdf", start, end)
+        try:
+            from django.db import transaction
+            from ..notifications import notify_report_generated
+            transaction.on_commit(
+                lambda: notify_report_generated(request.user, "pdf", start, end)
+            )
+        except Exception:
+            pass
 
         buffer.seek(0)
         response = HttpResponse(buffer.read(), content_type='application/pdf')
@@ -425,16 +437,16 @@ class UserSettingsView(APIView):
 def index_view(request):
     """Renders the dashboard index page with server-side context fallback."""
     now = timezone.now()
-    
+
     # Query categories
     categories = Category.objects.filter(user=request.user).order_by('name')
     categories_map = {c.name: c.icon for c in categories}
-    
+
     # Query recent expenses
     recent_expenses = Expense.objects.filter(user=request.user).order_by('-expense_date')[:7]
     for e in recent_expenses:
         e.category_icon = categories_map.get(e.category, 'ph-package')
-        
+
     # Query budget warnings/info for current month
     budget_info = None
     budget = Budget.objects.filter(user=request.user, month=now.month, year=now.year).first()
@@ -457,7 +469,7 @@ def index_view(request):
             'threshold': budget.warning_threshold,
             'warning': usage >= budget.warning_threshold,
         }
-        
+
     context = {
         'categories': categories,
         'recent_expenses': recent_expenses,

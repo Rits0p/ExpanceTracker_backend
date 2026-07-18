@@ -554,12 +554,11 @@ class AIAssistantTests(BaseAPITestCase):
         self.assertIn("Added monthly recurring", data['data']['message'])
         
         # Verify the RecurringExpense template was automatically created and linked
-        self.assertEqual(RecurringExpense.objects.count(), 1)
-        re = RecurringExpense.objects.first()
-        self.assertEqual(re.title, "Netflix")
+        self.assertEqual(RecurringExpense.objects.filter(user=self.test_user, title="Netflix").count(), 1)
+        re = RecurringExpense.objects.get(user=self.test_user, title="Netflix")
         self.assertEqual(float(re.amount), 199.0)
         self.assertEqual(re.frequency, "monthly")
-        self.assertEqual(re.user, self.user)
+        self.assertEqual(re.user, self.test_user)
 
     @patch('api.views.ai_views.requests.post')
     def test_add_daily_recurring_expense_via_ai_blocked(self, mock_post):
