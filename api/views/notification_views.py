@@ -1,13 +1,12 @@
 """Authenticated device-registration and FCM test endpoints."""
 
 from django.conf import settings
+from django.db import transaction
 from django.shortcuts import get_object_or_404
-from hashlib import sha256
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from ..models import DeviceToken
-from ..notifications import send_push_notification
 from ..serializers import DeviceTokenSerializer
 from ..utils import ApiResponse
 
@@ -37,6 +36,7 @@ class DeviceTokenListCreateView(APIView):
             return ApiResponse.error("Validation failed", 400, serializer.errors)
 
         token = serializer.validated_data.pop("token")
+        from hashlib import sha256
         token_hash = sha256(token.encode("utf-8")).hexdigest()
         DeviceToken.objects.filter(token_hash=token_hash).exclude(user=request.user).delete()
         device, created = DeviceToken.objects.update_or_create(
@@ -44,6 +44,11 @@ class DeviceTokenListCreateView(APIView):
             token_hash=token_hash,
             defaults={**serializer.validated_data, "token": token},
         )
+
+        # Keep only the 3 most recent tokens per user to prevent stale token buildup
+        recent_ids = DeviceToken.objects.filter(user=request.user).order_by('-last_seen_at').values_list('id', flat=True)[:3]
+        DeviceToken.objects.filter(user=request.user).exclude(id__in=list(recent_ids)).delete()
+
         return ApiResponse.success(
             DeviceTokenSerializer(device).data,
             status_code=201 if created else 200,
@@ -64,23 +69,18 @@ class NotificationTestView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        from ..notifications import _get_messaging
+        from ..notifications import _get_messaging, send_push_notification
 
         if _get_messaging() is None:
             return ApiResponse.error("Firebase server messaging is not configured.", 503)
 
-        import threading
-
-        user = request.user
-
-        def trigger_send():
-            send_push_notification(
-                user,
+        transaction.on_commit(
+            lambda: send_push_notification(
+                request.user,
                 event_type="test",
                 title="ExpenseTracker notifications enabled",
                 body="This device can now receive expense notifications.",
                 url="/settings/",
             )
-
-        threading.Thread(target=trigger_send, daemon=True).start()
+        )
         return ApiResponse.success(message="Test notification dispatch initiated")

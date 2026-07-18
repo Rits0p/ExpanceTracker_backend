@@ -96,11 +96,24 @@ async function initializeMessaging() {
   return { config, registration };
 }
 
-window.addEventListener('load', () => {
-  if ('Notification' in window && Notification.permission === 'granted') {
-    initializeMessaging().catch((error) => {
-      console.warn('Unable to restore Firebase message listener:', error);
+window.addEventListener('load', async () => {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+  try {
+    const { config, registration } = await initializeMessaging();
+    const token = await getToken(messaging, {
+      vapidKey: config.vapidKey,
+      serviceWorkerRegistration: registration,
     });
+    if (!token) return;
+
+    const deviceName = `${navigator.platform || 'Browser'} (${navigator.userAgent.slice(0, 60)})`;
+    await Auth.apiFetch('/api/v1/notifications/devices', {
+      method: 'POST',
+      body: JSON.stringify({ token, platform: 'web', device_name: deviceName }),
+    });
+  } catch (error) {
+    console.warn('Unable to restore Firebase message listener:', error);
   }
 });
 
