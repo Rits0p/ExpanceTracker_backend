@@ -13,6 +13,12 @@ def create_default_categories(sender, instance, created, **kwargs):
 
         defaults = [
             {'name': 'Food', 'icon': 'ph-hamburger', 'color': '#10b981'},
+            {'name': 'Groceries', 'icon': 'ph-shopping-cart', 'color': '#2cb67d'},
+            {'name': 'Housing', 'icon': 'ph-house-line', 'color': '#8b5cf6'},
+            {'name': 'Utilities', 'icon': 'ph-lightning', 'color': '#f59e0b'},
+            {'name': 'Health', 'icon': 'ph-heartbeat', 'color': '#ef4444'},
+            {'name': 'Entertainment', 'icon': 'ph-film-strip', 'color': '#ec4899'},
+            {'name': 'Shopping', 'icon': 'ph-bag', 'color': '#f43f5e'},
             {'name': 'Travel', 'icon': 'ph-car', 'color': '#06b6d4'},
             {'name': 'Other', 'icon': 'ph-package', 'color': '#6b7280'},
         ]

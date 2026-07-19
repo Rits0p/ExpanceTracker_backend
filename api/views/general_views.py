@@ -4,7 +4,7 @@ Mirrors: /api/v1/categories/*, /api/v1/budget/*, /api/v1/reports/*
 """
 import csv
 import io
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum
@@ -458,6 +458,114 @@ class UserSettingsView(APIView):
             serializer.save()
             return ApiResponse.success(serializer.data, message='Settings updated successfully')
         return ApiResponse.error('Validation failed', 400, serializer.errors)
+
+
+
+
+class NotificationAlertsView(APIView):
+    """GET /api/v1/notifications/alerts — generate live in-app notification alerts"""
+
+    def get(self, request):
+        now = timezone.now()
+        alerts = []
+
+        # 1. Budget alert — if spending >= warning_threshold this month
+        try:
+            budget = Budget.objects.get(user=request.user, month=now.month, year=now.year)
+            start = get_start_of_month(now)
+            end = get_end_of_month(now)
+            spent = float(
+                Expense.objects.filter(
+                    user=request.user,
+                    expense_date__gte=start, expense_date__lte=end
+                ).aggregate(total=Sum('amount'))['total'] or 0
+            )
+            budget_total = float(budget.total_monthly_budget)
+            if budget_total > 0:
+                usage = (spent / budget_total) * 100
+                if usage >= 100:
+                    alerts.append({
+                        'id': 'budget_over',
+                        'type': 'danger',
+                        'icon': 'ph-warning-circle',
+                        'title': 'Budget Exceeded!',
+                        'message': f'You have spent {round(usage, 1)}% of your monthly budget.',
+                        'time': 'This month',
+                    })
+                elif usage >= budget.warning_threshold:
+                    alerts.append({
+                        'id': 'budget_warning',
+                        'type': 'warning',
+                        'icon': 'ph-warning',
+                        'title': 'Budget Warning',
+                        'message': f'You have used {round(usage, 1)}% of your monthly budget.',
+                        'time': 'This month',
+                    })
+        except Budget.DoesNotExist:
+            alerts.append({
+                'id': 'no_budget',
+                'type': 'info',
+                'icon': 'ph-info',
+                'title': 'No Budget Set',
+                'message': 'Set a monthly budget to track your spending limits.',
+                'time': 'Tip',
+            })
+
+        # 2. Large expense alert — any single expense > 5000 in last 7 days
+        seven_days_ago = now - timedelta(days=7)
+        large_expenses = Expense.objects.filter(
+            user=request.user,
+            expense_date__gte=seven_days_ago,
+            amount__gte=5000
+        ).order_by('-amount')[:3]
+        for exp in large_expenses:
+            alerts.append({
+                'id': f'large_exp_{exp.id}',
+                'type': 'warning',
+                'icon': 'ph-currency-circle-dollar',
+                'title': 'Large Expense Detected',
+                'message': f'"{exp.title}" — {float(exp.amount):,.0f} on {exp.expense_date.strftime("%b %d")}.',
+                'time': exp.expense_date.strftime('%b %d'),
+            })
+
+        # 3. Overdue recurring expenses
+        from ..models import RecurringExpense
+        overdue = RecurringExpense.objects.filter(
+            user=request.user,
+            is_active=True,
+            next_due_date__lt=now.date()
+        ).order_by('next_due_date')[:3]
+        for rec in overdue:
+            alerts.append({
+                'id': f'overdue_rec_{rec.id}',
+                'type': 'danger',
+                'icon': 'ph-clock-countdown',
+                'title': 'Recurring Expense Overdue',
+                'message': f'"{rec.title}" was due on {rec.next_due_date.strftime("%b %d")}.',
+                'time': rec.next_due_date.strftime('%b %d'),
+            })
+
+        # 4. Upcoming recurring expenses (due in next 3 days)
+        three_days_later = now.date() + timedelta(days=3)
+        upcoming = RecurringExpense.objects.filter(
+            user=request.user,
+            is_active=True,
+            next_due_date__gte=now.date(),
+            next_due_date__lte=three_days_later
+        ).order_by('next_due_date')[:3]
+        for rec in upcoming:
+            days_left = (rec.next_due_date - now.date()).days
+            due_label = 'Today' if days_left == 0 else ('Tomorrow' if days_left == 1 else f'In {days_left} days')
+            alerts.append({
+                'id': f'upcoming_rec_{rec.id}',
+                'type': 'info',
+                'icon': 'ph-calendar-check',
+                'title': 'Upcoming Recurring',
+                'message': f'"{rec.title}" is due {due_label} ({float(rec.amount):,.0f}).',
+                'time': due_label,
+            })
+
+        return ApiResponse.success({'alerts': alerts, 'count': len(alerts)})
 
 
 @login_required

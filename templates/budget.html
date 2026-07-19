@@ -263,6 +263,7 @@
   let analyticsData = [];
   let budgetWarnings = null;
   let budgetHistory = [];
+  let allExpenses = [];
 
   async function fetchBudgetData() {
     const sym = (typeof Settings !== 'undefined' && Settings._data && Settings._data.currencySymbol) || '$';
@@ -272,12 +273,13 @@
     if (typeof Auth !== "undefined") await Auth.init();
     const now = new Date();
 
-    const [catRes, analyticsRes, warningsRes, historyRes] =
+    const [catRes, analyticsRes, warningsRes, historyRes, expRes] =
       await Promise.all([
         Auth.apiFetch("/api/v1/categories"),
         Auth.apiFetch("/api/v1/analytics/categories"),
         Auth.apiFetch("/api/v1/budget/warnings"),
         Auth.apiFetch("/api/v1/budget/all"),
+        Auth.apiFetch("/api/v1/expenses/?limit=5000"),
       ]);
 
     if (catRes && catRes.success) allCategories = catRes.data;
@@ -286,6 +288,9 @@
     if (warningsRes && warningsRes.success)
       budgetWarnings = warningsRes.data;
     if (historyRes && historyRes.success) budgetHistory = historyRes.data;
+    if (expRes) {
+      allExpenses = expRes.data?.results || expRes.data || expRes.results || (Array.isArray(expRes) ? expRes : []);
+    }
 
     // Populate Categories Dropdown
     const catSelect = document.getElementById("bCategory");
@@ -470,8 +475,26 @@
     budgetHistory.forEach((b) => {
       const label = months[b.month - 1] + " " + b.year;
       const budget = parseFloat(b.totalMonthlyBudget) || 0;
-      const statusBadge = '<span class="badge badge-cyan">Set</span>';
-      historyBody.innerHTML += `<tr><td>${label}</td><td>${Settings.formatCurrency(budget)}</td><td>—</td><td>${statusBadge}</td></tr>`;
+
+      // Calculate actual spent for this specific month/year
+      let actualSpent = 0;
+      allExpenses.forEach(exp => {
+        const d = new Date(exp.expenseDate || exp.date);
+        if (d.getMonth() + 1 === b.month && d.getFullYear() === b.year) {
+          actualSpent += parseFloat(exp.amount || 0);
+        }
+      });
+
+      let statusBadge = '';
+      if (actualSpent > budget && budget > 0) {
+        statusBadge = '<span class="badge badge-red">Over Budget</span>';
+      } else if (actualSpent > budget * 0.8 && budget > 0) {
+        statusBadge = '<span class="badge badge-yellow">Warning</span>';
+      } else {
+        statusBadge = '<span class="badge badge-emerald">Within Budget</span>';
+      }
+
+      historyBody.innerHTML += `<tr><td>${label}</td><td>${Settings.formatCurrency(budget)}</td><td><span style="font-weight:600; color:var(--text-primary);">${Settings.formatCurrency(actualSpent)}</span></td><td>${statusBadge}</td></tr>`;
     });
   }
 
