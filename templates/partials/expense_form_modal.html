@@ -22,12 +22,28 @@
       <div class="form-grid">
         <div class="form-group">
           <label class="form-label">Category *</label>
-          <select class="form-select" id="fCategory" required>
+
+          <!-- Hidden native select — keeps form value + validation accessible to JS -->
+          <select id="fCategory" name="fCategory" required style="display:none;">
             <option value="">Select category</option>
             {% for cat in categories %}
             <option value="{{ cat.name }}" data-id="{{ cat.id }}">{{ cat.name }}</option>
             {% endfor %}
           </select>
+
+          <!-- Custom icon-capable dropdown -->
+          <div class="custom-dropdown" id="fCategoryDropdown">
+            <div class="custom-dropdown-trigger" id="fCategoryTrigger">
+              <span class="custom-dropdown-value" id="fCategoryTriggerValue">
+                <i class="ph ph-tag"></i> Select category
+              </span>
+              <i class="ph ph-caret-down custom-dropdown-arrow"></i>
+            </div>
+            <div class="custom-dropdown-menu" id="fCategoryMenu">
+              <!-- populated by JS -->
+            </div>
+          </div>
+
           <div class="form-error" id="errCategory"></div>
         </div>
         <div class="form-group">
@@ -276,6 +292,20 @@
     color: var(--text-secondary);
   }
 
+  .custom-dropdown-item.selected {
+    background: rgba(254, 119, 67, 0.08);
+    color: var(--accent-primary);
+  }
+
+  .custom-dropdown-item.selected i {
+    color: var(--accent-primary);
+  }
+
+  /* Category dropdown needs a higher z-index because it sits above other fields */
+  #fCategoryDropdown .custom-dropdown-menu {
+    z-index: 1100;
+  }
+
   /* Upload Area Styling */
   .upload-area {
     border: 2px dashed var(--border-color);
@@ -338,22 +368,89 @@
       }
     }
 
+    const fCategoryDropdown = document.getElementById('fCategoryDropdown');
+    const fCategoryTrigger  = document.getElementById('fCategoryTrigger');
+    const fCategoryMenu     = document.getElementById('fCategoryMenu');
+
+    /** Build the custom category dropdown items from formCategories[] */
     function populateCategoryDropdown() {
+      if (!fCategoryMenu) return;
+
+      // Keep track of current selection
+      const currentValue = fCategory ? fCategory.value : '';
+
+      // Rebuild hidden native select options
       if (fCategory) {
-        const currentValue = fCategory.value;
         fCategory.innerHTML = '<option value="">Select category</option>';
         formCategories.forEach(c => {
-          const icon = c.icon ? c.icon + ' ' : '';
-          fCategory.innerHTML += `<option value="${c.name}" data-id="${c.id}">${icon}${c.name}</option>`;
+          const opt = document.createElement('option');
+          opt.value = c.name;
+          opt.dataset.id = c.id;
+          opt.textContent = c.name;
+          fCategory.appendChild(opt);
         });
         if (currentValue) fCategory.value = currentValue;
       }
+
+      // Rebuild custom dropdown items
+      fCategoryMenu.innerHTML = '';
+      formCategories.forEach(c => {
+        const iconClass = c.icon || 'ph-package';
+        const item = document.createElement('div');
+        item.className = 'custom-dropdown-item';
+        item.dataset.value = c.name;
+        item.dataset.id    = c.id;
+        item.innerHTML = `<i class="ph ${iconClass}"></i> ${c.name}`;
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setCategoryDropdown(c.name, iconClass);
+          fCategoryDropdown.classList.remove('active');
+        });
+        fCategoryMenu.appendChild(item);
+      });
+
+      // Restore previous selection display
+      if (currentValue) {
+        const cat = formCategories.find(c => c.name === currentValue);
+        if (cat) setCategoryDropdown(cat.name, cat.icon || 'ph-package');
+      }
+    }
+
+    /** Set the category dropdown to a given value and update the trigger display */
+    function setCategoryDropdown(name, iconClass) {
+      if (fCategory) fCategory.value = name;
+      const triggerVal = document.getElementById('fCategoryTriggerValue');
+      if (triggerVal) {
+        triggerVal.innerHTML = name
+          ? `<i class="ph ${iconClass || 'ph-tag'}"></i> ${name}`
+          : '<i class="ph ph-tag"></i> Select category';
+      }
+      // Highlight selected item in the open menu
+      if (fCategoryMenu) {
+        fCategoryMenu.querySelectorAll('.custom-dropdown-item').forEach(el => {
+          el.classList.toggle('selected', el.dataset.value === name);
+        });
+      }
+    }
+
+    // Open / close category dropdown
+    if (fCategoryTrigger && fCategoryDropdown) {
+      fCategoryTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Close payment method dropdown if open
+        if (fMethodDropdown) fMethodDropdown.classList.remove('active');
+        fCategoryDropdown.classList.toggle('active');
+      });
+      document.addEventListener('click', () => {
+        if (fCategoryDropdown) fCategoryDropdown.classList.remove('active');
+      });
     }
 
     window.setFormCategories = function (categories) {
       formCategories = categories || [];
       populateCategoryDropdown();
     };
+
 
 
     function updateCustomDropdownUI(value) {
@@ -689,6 +786,8 @@
       }
 
       updateCustomDropdownUI('Cash');
+      // Reset category dropdown to placeholder
+      setCategoryDropdown('', 'ph-tag');
       openModal('expenseFormModal');
     };
 
@@ -714,7 +813,11 @@
       fId.value = exp.id;
       fTitle.value = exp.title;
       fAmount.value = exp.amount;
-      fCategory.value = exp.category;
+
+      // Set category on both the hidden select and the custom dropdown trigger
+      const catName = exp.category;
+      const catObj  = formCategories.find(c => c.name === catName);
+      setCategoryDropdown(catName, catObj ? (catObj.icon || 'ph-package') : 'ph-package');
  
       const d = new Date(exp.expenseDate || exp.date);
       const tzOffset = d.getTimezoneOffset() * 60000;

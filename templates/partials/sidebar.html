@@ -9,7 +9,7 @@
       <span class="nav-label">Dashboard</span>
     </a>
     <a href="/expenses/" class="nav-item {% if '/expenses/' in request.path %}active{% endif %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      <span id="sidebarCurrencySign" style="width: 18px; height: 18px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; line-height: 1;">{{ request.user.settings.currency_symbol|default:"$" }}</span>
       <span class="nav-label">Expenses</span>
     </a>
     <a href="/budget/" class="nav-item {% if '/budget/' in request.path %}active{% endif %}">

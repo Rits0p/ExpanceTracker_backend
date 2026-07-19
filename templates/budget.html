@@ -270,16 +270,17 @@
     const budgetAmountLabel = document.getElementById('budgetAmountLabel');
     if (budgetAmountLabel) budgetAmountLabel.textContent = `Amount (${sym})`;
 
-    if (typeof Auth !== "undefined") await Auth.init();
     const now = new Date();
 
+    // Fetch all resources via AppCache — avoids redundant network calls
+    // when fetchBudgetData() is called after mutations.
     const [catRes, analyticsRes, warningsRes, historyRes, expRes] =
       await Promise.all([
-        Auth.apiFetch("/api/v1/categories"),
-        Auth.apiFetch("/api/v1/analytics/categories"),
-        Auth.apiFetch("/api/v1/budget/warnings"),
-        Auth.apiFetch("/api/v1/budget/all"),
-        Auth.apiFetch("/api/v1/expenses/?limit=5000"),
+        AppCache.get('/api/v1/categories', ['categories']),
+        AppCache.get('/api/v1/analytics/categories', ['analytics']),
+        AppCache.get('/api/v1/budget/warnings', ['budget']),
+        AppCache.get('/api/v1/budget/all', ['budget']),
+        AppCache.get('/api/v1/expenses/?limit=5000', ['expenses']),
       ]);
 
     if (catRes && catRes.success) allCategories = catRes.data;
@@ -419,6 +420,9 @@
       window.dispatchEvent(new CustomEvent('ai:finance:changed', {
         detail: { action: 'category_changed', record: { id: categoryToDelete } }
       }));
+      // Invalidate only categories + analytics — expenses cache is unaffected
+      AppCache.invalidateTag('categories');
+      AppCache.invalidateTag('analytics');
       fetchBudgetData();
     } else {
       showToast("Failed to delete category", "error");
@@ -443,6 +447,9 @@
         detail: { action: 'category_changed', record: res.data || {} }
       }));
       document.getElementById('addCategoryForm').reset();
+      // Invalidate only categories + analytics caches
+      AppCache.invalidateTag('categories');
+      AppCache.invalidateTag('analytics');
       fetchBudgetData();
     } else {
       showToast('Failed to add category', 'error');
@@ -569,6 +576,10 @@
           detail: { action: 'category_changed', record: catRes.data || {} }
         }));
         closeModal("budgetModal");
+        // Invalidate categories, analytics, and budget caches
+        AppCache.invalidateTag('categories');
+        AppCache.invalidateTag('analytics');
+        AppCache.invalidateTag('budget');
         fetchBudgetData();
       } else {
         showToast("Failed to update budget", "error");
@@ -577,6 +588,19 @@
 
   // Listen to AI budget/expense changes and refresh the page data
   window.addEventListener('ai:finance:changed', (e) => {
+    const action = e.detail?.action;
+    // Only invalidate caches relevant to the change type before re-fetching
+    if (action === 'category_changed') {
+      AppCache.invalidateTag('categories');
+      AppCache.invalidateTag('analytics');
+    } else if (action === 'budget_changed') {
+      AppCache.invalidateTag('budget');
+    } else {
+      // Generic expense change — invalidate all live data
+      AppCache.invalidateTag('expenses');
+      AppCache.invalidateTag('analytics');
+      AppCache.invalidateTag('budget');
+    }
     fetchBudgetData();
   });
 
@@ -608,6 +632,7 @@
         detail: { action: 'budget_changed', record: res.data || {} }
       }));
       closeModal("globalBudgetModal");
+      AppCache.invalidateTag('budget');
       fetchBudgetData();
     } else {
       showToast("Failed to update global budgets", "error");

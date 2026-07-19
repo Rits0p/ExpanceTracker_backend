@@ -202,6 +202,7 @@ const Settings = {
     this.apply();
     initTheme();
     applySidebarState();
+    if (typeof updateChartsTheme === "function") updateChartsTheme();
   },
 
   get(key) {
@@ -216,6 +217,8 @@ const Settings = {
 
     if (key === "theme") {
       updateThemeIcon();
+      if (typeof updateChartsTheme === "function") updateChartsTheme();
+    } else if (key === "currencySymbol" || key === "currency") {
       if (typeof updateChartsTheme === "function") updateChartsTheme();
     } else if (key === "sidebarCollapsed") {
       const sidebar = document.getElementById("sidebar");
@@ -253,6 +256,10 @@ const Settings = {
     else document.body.classList.remove("compact-mode");
     if (!this._data.animations) document.body.classList.add("no-animations");
     else document.body.classList.remove("no-animations");
+    const sidebarSign = document.getElementById("sidebarCurrencySign");
+    if (sidebarSign) {
+      sidebarSign.textContent = this._data.currencySymbol || "$";
+    }
   },
 
   formatCurrency(n) {
@@ -294,6 +301,101 @@ const AppData = {
   kpis: {},
 };
 
+// --- In-Memory API Cache ---
+// TTL-based cache that wraps Auth.apiFetch to avoid redundant network calls.
+// Cache is per page-load (not persisted to localStorage).
+const AppCache = {
+  _store: {},
+
+  // Default TTLs in milliseconds per URL prefix
+  _ttls: {
+    '/api/v1/auth/me':               15 * 60 * 1000, // 15 min (lifetime of access token)
+    '/api/v1/categories':             5 * 60 * 1000, // 5 min
+    '/api/v1/analytics':              2 * 60 * 1000, // 2 min
+    '/api/v1/budget':                 2 * 60 * 1000, // 2 min
+    '/api/v1/expenses':               60 * 1000,     // 60 s
+    '/api/v1/recurring-expenses':     60 * 1000,     // 60 s
+    '/api/v1/notifications/alerts':   90 * 1000,     // 90 s (matches poll interval)
+    '/api/v1/settings':               5 * 60 * 1000, // 5 min
+  },
+
+  // Tags allow bulk-invalidating related cache entries.
+  // Key → Set of tag strings
+  _tags: {},
+
+  _getTTL(url) {
+    const path = url.split('?')[0];
+    for (const prefix of Object.keys(this._ttls)) {
+      if (path.startsWith(prefix)) return this._ttls[prefix];
+    }
+    return 30 * 1000; // default 30s for unknown endpoints
+  },
+
+  /**
+   * Fetch with caching. If a valid (non-expired) cache entry exists, return it.
+   * Otherwise call Auth.apiFetch, store the result, and return it.
+   *
+   * @param {string} url
+   * @param {string[]} [tags]  - tag names to associate with this cache entry
+   * @returns {Promise<any>}
+   */
+  async get(url, tags = []) {
+    const now = Date.now();
+    const entry = this._store[url];
+    if (entry && now < entry.expiresAt) {
+      return entry.data;
+    }
+    if (typeof Auth === 'undefined') return null;
+    const data = await Auth.apiFetch(url);
+    if (data !== null) {
+      this._store[url] = { data, expiresAt: now + this._getTTL(url) };
+      tags.forEach(tag => {
+        if (!this._tags[tag]) this._tags[tag] = new Set();
+        this._tags[tag].add(url);
+      });
+    }
+    return data;
+  },
+
+  /**
+   * Invalidate a specific URL's cache entry.
+   * @param {string} url
+   */
+  invalidate(url) {
+    delete this._store[url];
+  },
+
+  /**
+   * Invalidate all cache entries matching a URL prefix.
+   * @param {string} prefix
+   */
+  invalidatePrefix(prefix) {
+    Object.keys(this._store).forEach(key => {
+      if (key.startsWith(prefix)) delete this._store[key];
+    });
+  },
+
+  /**
+   * Invalidate all cache entries associated with a tag.
+   * @param {string} tag
+   */
+  invalidateTag(tag) {
+    const urls = this._tags[tag];
+    if (urls) {
+      urls.forEach(url => delete this._store[url]);
+      delete this._tags[tag];
+    }
+  },
+
+  /**
+   * Clear all cached data (e.g., on logout or full refresh).
+   */
+  clear() {
+    this._store = {};
+    this._tags = {};
+  },
+};
+
 // --- API Service Wrapper ---
 const API = {
   async getDashboardData({ startDate, endDate } = {}) {
@@ -314,13 +416,14 @@ const API = {
       }
     }
 
-    // Fetch multiple endpoints simultaneously
+    // Fetch multiple endpoints simultaneously — analytics/kpis are date-range-specific so no cache hit
+    // for different ranges; categories and budget are cached independently.
     const [kpisRes, expensesRes, categoriesRes, budgetRes, budgetDetailRes] = await Promise.all([
-      Auth.apiFetch(`/api/v1/analytics/kpis${queryParams}`),
-      Auth.apiFetch(`/api/v1/expenses/?limit=10${startDate ? `&startDate=${startDate}&endDate=${endDate}` : ''}`),
-      Auth.apiFetch(`/api/v1/analytics/categories${queryParams}`),
-      Auth.apiFetch('/api/v1/budget/warnings'),
-      Auth.apiFetch(`/api/v1/budget?month=${m}&year=${y}`).catch(() => null)
+      AppCache.get(`/api/v1/analytics/kpis${queryParams}`, ['analytics']),
+      AppCache.get(`/api/v1/expenses/?limit=10${startDate ? `&startDate=${startDate}&endDate=${endDate}` : ''}`, ['expenses']),
+      AppCache.get(`/api/v1/analytics/categories${queryParams}`, ['analytics']),
+      AppCache.get('/api/v1/budget/warnings', ['budget']),
+      AppCache.get(`/api/v1/budget?month=${m}&year=${y}`, ['budget']).catch(() => null),
     ]);
 
     if (kpisRes && kpisRes.success) {
@@ -345,11 +448,12 @@ const API = {
   },
 
   async getChartData() {
-    if (typeof Auth === "undefined") return null;
+    if (typeof Auth === 'undefined') return null;
+    // Chart data changes slowly — cache for 2 min to avoid re-fetching on filter tab clicks
     const [monthlyBar, weeklyLine, incExp] = await Promise.all([
-      Auth.apiFetch("/api/v1/analytics/charts/monthly-bar"),
-      Auth.apiFetch("/api/v1/analytics/charts/weekly-line"),
-      Auth.apiFetch("/api/v1/analytics/charts/budget-expense"),
+      AppCache.get('/api/v1/analytics/charts/monthly-bar', ['analytics']),
+      AppCache.get('/api/v1/analytics/charts/weekly-line', ['analytics']),
+      AppCache.get('/api/v1/analytics/charts/budget-expense', ['analytics']),
     ]);
     return {
       monthlyBar: monthlyBar?.data || [],

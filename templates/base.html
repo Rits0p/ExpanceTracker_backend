@@ -111,9 +111,9 @@
 
   {% include 'partials/bottom_nav.html' %}
 
-  <script src="{% static 'js/auth.js' %}?v=4.1"></script>
-  <script src="{% static 'js/components.js' %}?v=4.1"></script>
-  <script src="{% static 'js/app.js' %}?v=4.1"></script>
+  <script src="{% static 'js/auth.js' %}?v=4.2"></script>
+  <script src="{% static 'js/components.js' %}?v=4.2"></script>
+  <script src="{% static 'js/app.js' %}?v=4.2"></script>
   <script type="module" src="{% static 'js/firebase-messaging.js' %}?v=5"></script>
   {% block extra_js %}{% endblock %}
 
@@ -121,13 +121,24 @@
     // ── Notification Bell Logic ──────────────────────────────────────
     let _notifOpen = false;
     let _notifAlerts = [];
+    let _notifLastFetch = 0;      // timestamp of last successful fetch
+    const _notifPollInterval = 90000; // 90 seconds — matches setInterval below
     const _readIds = new Set(JSON.parse(localStorage.getItem('notif_read') || '[]'));
 
     function toggleNotifDropdown() {
       const dd = document.getElementById('notifDropdown');
       _notifOpen = !_notifOpen;
       dd.style.display = _notifOpen ? 'flex' : 'none';
-      if (_notifOpen) fetchNotifications();
+      if (_notifOpen) {
+        // Only fetch if data is stale (older than the poll interval)
+        const now = Date.now();
+        if (now - _notifLastFetch >= _notifPollInterval || _notifAlerts.length === 0) {
+          fetchNotifications();
+        } else {
+          // Re-render from cached data
+          renderNotifList();
+        }
+      }
     }
 
     // Close on outside click
@@ -210,6 +221,7 @@
         const res = await Auth.apiFetch('/api/v1/notifications/alerts');
         if (res && res.success) {
           _notifAlerts = res.data.alerts || [];
+          _notifLastFetch = Date.now();
           updateBadge();
           renderNotifList();
         }
@@ -221,7 +233,7 @@
     // Poll every 90 seconds
     document.addEventListener('DOMContentLoaded', () => {
       setTimeout(fetchNotifications, 2000);
-      setInterval(fetchNotifications, 90000);
+      setInterval(fetchNotifications, _notifPollInterval);
     });
   </script>
 </body>

@@ -1185,12 +1185,12 @@
     if (amountLabel) amountLabel.textContent = `Amount (${sym}) *`;
 
     try {
-      // Fetch budget settings
+      // Fetch budget settings via cache (2 min TTL)
       const now = new Date();
       const month = now.getMonth() + 1;
       const year = now.getFullYear();
       try {
-        const budgetRes = await Auth.apiFetch(`/api/v1/budget/?month=${month}&year=${year}`);
+        const budgetRes = await AppCache.get(`/api/v1/budget/?month=${month}&year=${year}`, ['budget']);
         if (budgetRes && budgetRes.success && budgetRes.data) {
           budgets.daily = parseFloat(budgetRes.data.dailyBudget) || 0;
           budgets.weekly = parseFloat(budgetRes.data.weeklyBudget) || 0;
@@ -1204,7 +1204,8 @@
         console.error('Failed to fetch budget settings', err);
       }
 
-      const res = await Auth.apiFetch('/api/v1/expenses/?limit=1000');
+      // Fetch expenses (60s TTL — first load always fresh, repeat actions use cache)
+      const res = await AppCache.get('/api/v1/expenses/?limit=1000', ['expenses']);
       if (res) {
         const expData = res.data?.results || res.data || res.results || (Array.isArray(res) ? res : []);
         if (Array.isArray(expData)) {
@@ -1212,7 +1213,9 @@
           expenses = [...AppData.expenses];
         }
       }
-      const catRes = await Auth.apiFetch('/api/v1/categories');
+
+      // Fetch categories via cache (5 min TTL)
+      const catRes = await AppCache.get('/api/v1/categories', ['categories']);
       if (catRes) {
         const catData = catRes.data?.results || catRes.data || catRes.results || (Array.isArray(catRes) ? catRes : []);
         if (Array.isArray(catData)) {
@@ -1221,9 +1224,9 @@
         }
       }
 
-      // Fetch recurring expenses for reference
+      // Fetch recurring expenses via cache (60s TTL)
       try {
-        const recRes = await Auth.apiFetch('/api/v1/recurring-expenses/?limit=200');
+        const recRes = await AppCache.get('/api/v1/recurring-expenses/?limit=200', ['recurring']);
         if (recRes) {
           const recData = recRes.data?.results || recRes.data || recRes.results || (Array.isArray(recRes) ? recRes : []);
           if (Array.isArray(recData)) {
@@ -1265,17 +1268,43 @@
 
   // Form Handling delegates to shared partial
   window.addEventListener('expense-saved', async (e) => {
-    // Refresh
-    const res = await Auth.apiFetch('/api/v1/expenses/?limit=1000');
-    if (res && res.success) {
-      AppData.expenses = res.data.results || res.data;
-      expenses = [...AppData.expenses];
-      updateBudgetsAndKPIs();
-      renderCalendar();
-      renderExpenses();
-      renderCategoryBudgets();
+    // Targeted local-state update: use the returned expense object instead of
+    // re-fetching all 1000 records. Only invalidate and re-fetch if detail is missing.
+    // Note: e.detail.expense is the raw API response (ApiResponse), so unwrap .data
+    const apiResponse = e.detail?.expense;
+    const saved = apiResponse?.data || (apiResponse?.id ? apiResponse : null);
+    if (saved && saved.id) {
+      const idx = expenses.findIndex(x => x.id === saved.id);
+      if (idx >= 0) {
+        // Edit: replace in-place
+        expenses[idx] = saved;
+        AppData.expenses[idx] = saved;
+      } else {
+        // Add: prepend
+        expenses.unshift(saved);
+        AppData.expenses.unshift(saved);
+      }
+      // Invalidate cache so next full-load picks up real server state
+      AppCache.invalidate('/api/v1/expenses/?limit=1000');
+      AppCache.invalidateTag('analytics');
+      AppCache.invalidateTag('budget');
+    } else {
+      // Fallback: full re-fetch if detail not available
+      AppCache.invalidateTag('expenses');
+      AppCache.invalidateTag('analytics');
+      AppCache.invalidateTag('budget');
+      const res = await AppCache.get('/api/v1/expenses/?limit=1000', ['expenses']);
+      if (res && res.success) {
+        AppData.expenses = res.data.results || res.data;
+        expenses = [...AppData.expenses];
+      }
     }
+    updateBudgetsAndKPIs();
+    renderCalendar();
+    renderExpenses();
+    renderCategoryBudgets();
   });
+
 
   function editExpense(id) {
     const exp = expenses.find(e => e.id === id);
@@ -1299,15 +1328,16 @@
           window.dispatchEvent(new CustomEvent('ai:finance:changed', {
             detail: { action: 'expense_changed', record: { id, category: 'deleted' } }
           }));
-          const res = await Auth.apiFetch('/api/v1/expenses/?limit=1000');
-          if (res && res.success) {
-            AppData.expenses = res.data.results || res.data;
-            expenses = [...AppData.expenses];
-            updateBudgetsAndKPIs();
-            renderCalendar();
-            renderExpenses();
-            renderCategoryBudgets();
-          }
+          // Remove locally — no need to re-fetch all 1000 records
+          expenses = expenses.filter(e => e.id !== id);
+          AppData.expenses = expenses;
+          AppCache.invalidate('/api/v1/expenses/?limit=1000');
+          AppCache.invalidateTag('analytics');
+          AppCache.invalidateTag('budget');
+          updateBudgetsAndKPIs();
+          renderCalendar();
+          renderExpenses();
+          renderCategoryBudgets();
         } else {
           showToast('Failed to delete expense', 'error');
         }
@@ -1329,19 +1359,16 @@
         window.dispatchEvent(new CustomEvent('ai:finance:changed', {
           detail: { action: 'expense_changed', record: { id, type: 'recurring' } }
         }));
-        // Update local state
+        // Update local recurring state in-place
         const idx = recurringExpenses.findIndex(r => r.id == id);
         if (idx >= 0 && res.data) recurringExpenses[idx] = res.data;
-        // Refresh expenses to get updated recurringExpenseDetail
-        const expRes = await Auth.apiFetch('/api/v1/expenses/?limit=1000');
-        if (expRes && expRes.success) {
-          AppData.expenses = expRes.data.results || expRes.data;
-          expenses = [...AppData.expenses];
-          updateBudgetsAndKPIs();
-          renderCalendar();
-          renderExpenses();
-          renderCategoryBudgets();
-        }
+        // Invalidate recurring cache so the widget refreshes correctly
+        AppCache.invalidateTag('recurring');
+        // Re-render with existing expense data — no need to re-fetch 1000 expenses
+        updateBudgetsAndKPIs();
+        renderCalendar();
+        renderExpenses();
+        renderCategoryBudgets();
       } else {
         showToast('Failed to toggle recurring expense', 'error');
       }
@@ -1361,17 +1388,13 @@
         window.dispatchEvent(new CustomEvent('ai:finance:changed', {
           detail: { action: 'expense_changed', record: { id, type: 'recurring_deleted' } }
         }));
+        // Remove locally from recurring list
         recurringExpenses = recurringExpenses.filter(r => r.id != id);
-        // Refresh expenses
-        const expRes = await Auth.apiFetch('/api/v1/expenses/?limit=1000');
-        if (expRes && expRes.success) {
-          AppData.expenses = expRes.data.results || expRes.data;
-          expenses = [...AppData.expenses];
-          updateBudgetsAndKPIs();
-          renderCalendar();
-          renderExpenses();
-          renderCategoryBudgets();
-        }
+        // Invalidate recurring cache
+        AppCache.invalidateTag('recurring');
+        // Re-render with existing expense data — template deletion doesn't affect existing expense rows
+        renderExpenses();
+        renderCategoryBudgets();
       } else {
         showToast('Failed to delete recurring expense', 'error');
       }
@@ -1476,6 +1499,9 @@
         budgets.weekly = weekly;
         budgets.monthly = monthly;
         budgets.yearly = yearly;
+
+        // Invalidate budget cache so next page load gets fresh data
+        AppCache.invalidateTag('budget');
 
         updateBudgetLabels();
         updateBudgetsAndKPIs();

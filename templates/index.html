@@ -356,23 +356,27 @@
   let dashboardCategories = [];
 
   // ── Dashboard Initialization ─────────────────────────────────────
+  // Track whether first full init has run (to skip chart re-fetch on minor refreshes)
+  let _dashboardInitialized = false;
+
   async function initDashboard(startDate, endDate) {
     const sym = (typeof Settings !== 'undefined' && Settings._data && Settings._data.currencySymbol) || '$';
     const quickAmountLabel = document.getElementById('quickAmountLabel');
     if (quickAmountLabel) quickAmountLabel.textContent = `Amount (${sym}) *`;
 
-    if (typeof Auth !== "undefined") {
-      await Auth.init();
-    }
+    // Auth.init() is already called globally in app.js DOMContentLoaded.
+    // Calling it again here would fire /api/v1/auth/me on every filter tab click.
+    // Auth.init() is idempotent now (returns cached promise), but skip for clarity.
 
-    // Fetch dynamic categories
+    // Fetch categories via cache (5 min TTL — rarely changes)
     try {
-      const catRes = await Auth.apiFetch("/api/v1/categories");
+      const catRes = await AppCache.get('/api/v1/categories', ['categories']);
       if (catRes && catRes.success) {
         dashboardCategories = catRes.data?.results || catRes.data || catRes.results || (Array.isArray(catRes) ? catRes : []);
+        AppData.categories = dashboardCategories;
       }
     } catch (e) {
-      console.error("Failed to load categories", e);
+      console.error('Failed to load categories', e);
     }
 
     // Populate Category Dropdown
@@ -659,8 +663,13 @@
   window.openQuickAddModal = function () { window.openAddExpenseModal(); };
 
   window.addEventListener('expense-saved', async (e) => {
+    // Invalidate expense and analytics caches so the next fetch gets fresh data,
+    // but keep categories cached (they haven't changed).
+    AppCache.invalidateTag('expenses');
+    AppCache.invalidateTag('analytics');
+    AppCache.invalidateTag('budget');
     const activeTab = document.querySelector("#dashboardTimeFilters .filter-tab.active");
-    const dates = activeTab ? getFilterDates(activeTab.dataset.range) : getFilterDates("30d");
+    const dates = activeTab ? getFilterDates(activeTab.dataset.range) : getFilterDates('30d');
     await initDashboard(dates.startDate, dates.endDate);
   });
 
@@ -754,7 +763,7 @@
       </div>`;
 
     try {
-      const recRes = await Auth.apiFetch('/api/v1/recurring-expenses/?limit=50');
+      const recRes = await AppCache.get('/api/v1/recurring-expenses/?limit=50', ['recurring']);
       let recData = [];
       if (recRes && recRes.success) {
         recData = recRes.data?.results || recRes.data || recRes.results || [];
@@ -831,6 +840,13 @@
   renderRecurringWidget();
 
   // Listen to AI budget/expense changes and refresh dashboard
-  window.addEventListener('ai:finance:changed', () => { initDashboard(); });
+  window.addEventListener('ai:finance:changed', () => {
+    // Invalidate live data caches before refreshing so the AI-driven change is reflected
+    AppCache.invalidateTag('expenses');
+    AppCache.invalidateTag('analytics');
+    AppCache.invalidateTag('budget');
+    AppCache.invalidateTag('recurring');
+    initDashboard();
+  });
 </script>
 {% endblock %}

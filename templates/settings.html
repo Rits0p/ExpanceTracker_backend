@@ -244,13 +244,20 @@
     <script>
       async function loadSettings() {
         try {
-          if (typeof Auth !== "undefined") await Auth.init();
-          const res = await Auth.apiFetch("/api/v1/settings");
-          if (res && res.data) {
-            Settings._data = { ...Settings.defaults, ...res.data };
+          // Auth.init() is called globally in app.js — no need to repeat it here.
+          // Read settings from the already-cached user object if available.
+          const cachedUser = (typeof Auth !== 'undefined') ? Auth.getUser() : null;
+          if (cachedUser && cachedUser.settings) {
+            Settings._data = { ...Settings.defaults, ...cachedUser.settings };
+          } else {
+            // Fallback: fetch from API (also uses AppCache with 5 min TTL)
+            const res = await AppCache.get('/api/v1/settings', ['settings']);
+            if (res && res.data) {
+              Settings._data = { ...Settings.defaults, ...res.data };
+            }
           }
         } catch (e) {
-          console.warn("Failed to fetch settings from API, using local fallback:", e);
+          console.warn('Failed to fetch settings from API, using local fallback:', e);
         }
         Settings.loadFromUser(Settings._data || {});
         applyUIState();

@@ -3,6 +3,7 @@
 
 const Auth = {
   user: null,
+  _initPromise: null, // ensures only one /api/v1/auth/me call per page load
 
   // ── Login ──
   async login(identifier, password) {
@@ -63,8 +64,11 @@ const Auth = {
       // Ignore — we clear local state regardless
     }
     this.user = null;
+    this._initPromise = null;
+    if (typeof AppCache !== 'undefined') AppCache.clear();
     window.location.href = "/login/";
   },
+
 
   // ── Refresh tokens ──
   async refresh() {
@@ -156,12 +160,22 @@ const Auth = {
 
   // ── Initialize on protected pages ──
   async init() {
+    // If user is already loaded, skip the network call entirely.
+    if (this.user) return this.user;
+    // If a fetch is already in-flight (e.g., multiple page init functions called concurrently),
+    // return the same promise instead of firing a second /api/v1/auth/me request.
+    if (this._initPromise) return this._initPromise;
+    this._initPromise = this._doInit();
+    return this._initPromise;
+  },
+
+  async _doInit() {
     // With HttpOnly cookies, user state is null on reload.
     // Must fetch from API to determine login status.
     const user = await this.fetchUser();
     if (user) {
       this.startAutoRefresh();
-      if (user.settings && typeof Settings !== "undefined") {
+      if (user.settings && typeof Settings !== 'undefined') {
         Settings.loadFromUser(user.settings);
       }
       if (typeof updateProfileUI === 'function') {
@@ -173,6 +187,7 @@ const Auth = {
     }
     return user;
   },
+
 
   // ── CSRF token reader ──
   getCSRFToken() {
