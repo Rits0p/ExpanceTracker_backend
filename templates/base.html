@@ -20,8 +20,7 @@
   <div class="main-content" id="mainContent">
     <header class="topbar">
       <div class="topbar-left">
-        <button class="topbar-btn" id="menuBtn"
-          onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <button class="topbar-btn" id="menuBtn" onclick="document.getElementById('sidebar').classList.toggle('open')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
             <line x1="3" y1="6" x2="21" y2="6" />
             <line x1="3" y1="12" x2="21" y2="12" />
@@ -35,12 +34,62 @@
       </div>
       <div class="topbar-right">
         <button class="topbar-btn" id="themeToggle" onclick="toggleTheme()"></button>
-        <button class="topbar-btn" id="notifBtn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 01-3.46 0" />
-          </svg>
-        </button>
+
+        <!-- Notification Bell -->
+        <div style="position:relative;" id="notifContainer">
+          <button class="topbar-btn" id="notifBtn" onclick="toggleNotifDropdown()" aria-label="Notifications"
+            style="position:relative;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 01-3.46 0" />
+            </svg>
+            <span id="notifBadge" style="
+              display:none;
+              position:absolute;
+              top:4px; right:4px;
+              min-width:16px; height:16px;
+              border-radius:50%;
+              background:#ef4444;
+              color:#fff;
+              font-size:10px;
+              font-weight:700;
+              line-height:16px;
+              text-align:center;
+              padding:0 3px;
+              pointer-events:none;
+            ">0</span>
+          </button>
+
+          <!-- Dropdown Panel -->
+          <div id="notifDropdown" style="
+            display:none;
+            position:absolute;
+            top:calc(100% + 8px);
+            right:0;
+            width:340px;
+            background:var(--bg-card);
+            border:1px solid var(--border-color);
+            border-radius:12px;
+            box-shadow:0 8px 32px rgba(0,0,0,0.24);
+            z-index:9999;
+            overflow:hidden;
+            max-height:420px;
+            display:none;
+            flex-direction:column;
+          ">
+            <div
+              style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border-color);">
+              <span style="font-weight:700;font-size:14px;color:var(--text-primary);">Notifications</span>
+              <button onclick="markAllRead()"
+                style="font-size:11px;color:var(--accent-primary);background:none;border:none;cursor:pointer;font-weight:600;">Mark
+                all read</button>
+            </div>
+            <div id="notifList" style="overflow-y:auto;max-height:340px;padding:8px 0;">
+              <div style="text-align:center;padding:32px 16px;color:var(--text-muted);font-size:13px;">Loading…</div>
+            </div>
+          </div>
+        </div>
+
         <div class="topbar-user" id="topbarUser">
           <a href="/profile/" style="text-decoration:none">
             <div class="avatar" id="topbarAvatar">
@@ -67,6 +116,114 @@
   <script src="{% static 'js/app.js' %}?v=4.1"></script>
   <script type="module" src="{% static 'js/firebase-messaging.js' %}?v=5"></script>
   {% block extra_js %}{% endblock %}
+
+  <script>
+    // ── Notification Bell Logic ──────────────────────────────────────
+    let _notifOpen = false;
+    let _notifAlerts = [];
+    const _readIds = new Set(JSON.parse(localStorage.getItem('notif_read') || '[]'));
+
+    function toggleNotifDropdown() {
+      const dd = document.getElementById('notifDropdown');
+      _notifOpen = !_notifOpen;
+      dd.style.display = _notifOpen ? 'flex' : 'none';
+      if (_notifOpen) fetchNotifications();
+    }
+
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+      if (!document.getElementById('notifContainer')?.contains(e.target)) {
+        document.getElementById('notifDropdown').style.display = 'none';
+        _notifOpen = false;
+      }
+    });
+
+    function markAllRead() {
+      _notifAlerts.forEach(a => _readIds.add(a.id));
+      localStorage.setItem('notif_read', JSON.stringify([..._readIds]));
+      updateBadge();
+      renderNotifList();
+    }
+
+    function updateBadge() {
+      const unread = _notifAlerts.filter(a => !_readIds.has(a.id));
+      const badge = document.getElementById('notifBadge');
+      if (!badge) return;
+      if (unread.length > 0) {
+        badge.style.display = 'block';
+        badge.textContent = unread.length > 9 ? '9+' : unread.length;
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    const _typeColors = {
+      danger: { bg: 'rgba(239,68,68,0.1)', color: '#ef4444' },
+      warning: { bg: 'rgba(245,158,11,0.1)', color: '#f59e0b' },
+      info: { bg: 'rgba(68,125,155,0.12)', color: '#447D9B' },
+      success: { bg: 'rgba(44,182,125,0.1)', color: '#2cb67d' },
+    };
+
+    function renderNotifList() {
+      const list = document.getElementById('notifList');
+      if (!list) return;
+      if (_notifAlerts.length === 0) {
+        list.innerHTML = '<div style="text-align:center;padding:32px 16px;color:var(--text-muted);font-size:13px;">🎉 All caught up! No alerts right now.</div>';
+        return;
+      }
+      list.innerHTML = _notifAlerts.map(a => {
+        const isRead = _readIds.has(a.id);
+        const clr = _typeColors[a.type] || _typeColors.info;
+        return `
+          <div onclick="markRead('${a.id}')" style="
+            display:flex;gap:12px;align-items:flex-start;
+            padding:11px 16px;cursor:pointer;
+            background:${isRead ? 'transparent' : 'rgba(254,119,67,0.04)'};
+            border-left:3px solid ${isRead ? 'transparent' : clr.color};
+            transition:background 0.15s;
+          " onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='${isRead ? 'transparent' : 'rgba(254,119,67,0.04)'}'">
+            <div style="
+              width:34px;height:34px;border-radius:50%;flex-shrink:0;
+              background:${clr.bg};color:${clr.color};
+              display:flex;align-items:center;justify-content:center;font-size:16px;
+            "><i class="ph ${a.icon}"></i></div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:600;font-size:13px;color:var(--text-primary);margin-bottom:2px;">${a.title}</div>
+              <div style="font-size:12px;color:var(--text-secondary);line-height:1.4;">${a.message}</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">${a.time}</div>
+            </div>
+            ${!isRead ? `<div style="width:7px;height:7px;border-radius:50%;background:${clr.color};flex-shrink:0;margin-top:4px;"></div>` : ''}
+          </div>`;
+      }).join('');
+    }
+
+    function markRead(id) {
+      _readIds.add(id);
+      localStorage.setItem('notif_read', JSON.stringify([..._readIds]));
+      updateBadge();
+      renderNotifList();
+    }
+
+    async function fetchNotifications() {
+      try {
+        if (typeof Auth === 'undefined' || !Auth.apiFetch) return;
+        const res = await Auth.apiFetch('/api/v1/notifications/alerts');
+        if (res && res.success) {
+          _notifAlerts = res.data.alerts || [];
+          updateBadge();
+          renderNotifList();
+        }
+      } catch (e) {
+        console.warn('Failed to fetch notifications', e);
+      }
+    }
+
+    // Poll every 90 seconds
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(fetchNotifications, 2000);
+      setInterval(fetchNotifications, 90000);
+    });
+  </script>
 </body>
 
 </html>

@@ -31,6 +31,7 @@ from .views.general_views import (
     ReportPDFView,
     ReportHistoryView,
     UserSettingsView,
+    NotificationAlertsView,
 )
 from .views.analytics_views import (
     AnalyticsKPIsView,
@@ -76,6 +77,7 @@ urlpatterns = [
     path('budget/', BudgetGetView.as_view(), name='budget-get'),
     path('budget/all', BudgetGetAllView.as_view(), name='budget-get-all'),
     path('budget/warnings', BudgetWarningsView.as_view(), name='budget-warnings'),
+    path('notifications/alerts', NotificationAlertsView.as_view(), name='notification-alerts'),
 
     # ───── Report Routes ─────
     path('reports/csv', ReportCSVView.as_view(), name='report-csv'),
