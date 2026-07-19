@@ -74,7 +74,8 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-            <path d="M17 8v-3a1 1 0 0 0 -1 -1h-10a2 2 0 0 0 0 4h12a1 1 0 0 1 1 1v3m0 4v3a1 1 0 0 1 -1 1h-12a2 2 0 0 1 -2 -2v-12" />
+            <path
+              d="M17 8v-3a1 1 0 0 0 -1 -1h-10a2 2 0 0 0 0 4h12a1 1 0 0 1 1 1v3m0 4v3a1 1 0 0 1 -1 1h-12a2 2 0 0 1 -2 -2v-12" />
             <path d="M20 12v4h-4a2 2 0 0 1 0 -4h4" />
           </svg>
         </div>
@@ -90,7 +91,8 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-            <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2m4 -14h6m-6 4h6m-2 4h2" />
+            <path
+              d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2m4 -14h6m-6 4h6m-2 4h2" />
           </svg>
         </div>
       </div>
@@ -147,8 +149,11 @@
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none" />
             <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
-            <path d="M18 14v4h4" /><path d="M18 18m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
-            <path d="M15 3v4" /><path d="M7 3v4" /><path d="M3 11h16" />
+            <path d="M18 14v4h4" />
+            <path d="M18 18m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
+            <path d="M15 3v4" />
+            <path d="M7 3v4" />
+            <path d="M3 11h16" />
           </svg>
         </div>
       </div>
@@ -197,14 +202,16 @@
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none" />
             <path d="M3 5m0 3a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3z" />
-            <path d="M3 10l18 0" /><path d="M7 15l.01 0" /><path d="M11 15l2 0" />
+            <path d="M3 10l18 0" />
+            <path d="M7 15l.01 0" />
+            <path d="M11 15l2 0" />
           </svg>
         </div>
       </div>
       <div class="kpi-value" id="kpiSubs">4</div>
     </div>
   </div>
-  
+
   <!-- Charts Row 1 -->
   <div class="charts-grid">
     <div class="card fade-in" style="display:flex; flex-direction:column; height:100%;">
@@ -248,7 +255,7 @@
       <div class="chart-container" id="incomeExpenseChart"></div>
     </div>
   </div>
-  
+
   <!-- Recent Transactions -->
   <div class="card fade-in" style="margin-bottom: 24px;">
     <div class="card-header">
@@ -276,7 +283,7 @@
             <td>
               <span class="badge badge-cyan">
                 {% if e.category_icon %}
-                  <i class="ph {{ e.category_icon }}"></i>
+                <i class="ph {{ e.category_icon }}"></i>
                 {% endif %}
                 {{ e.category }}
               </span>
@@ -470,7 +477,7 @@
       document.getElementById("kpiBudget").textContent = Settings.formatCurrency(displayBudget);
       document.getElementById("kpiExpense").textContent = Settings.formatCurrency(displayExpenses);
       document.getElementById("kpiBalance").textContent = Settings.formatCurrency(remainingBalance);
-      
+
       animateCounter(document.getElementById("kpiSavings"), Math.round(savingsPercent), "", "%");
       document.getElementById("kpiMonthly").textContent = Settings.formatCurrency(kpis.monthlyExpense || 0);
       document.getElementById("kpiWeekly").textContent = Settings.formatCurrency(kpis.weeklyExpense || 0);
@@ -506,7 +513,7 @@
     const primaryColor = () => "#FE7743";
     const successColor = () => "#2CB67D";
     const purpleColor = () => isLight() ? "#8B5CF6" : "#B39DDB";
-    const cyanColor   = () => "#447D9B";
+    const cyanColor = () => "#447D9B";
 
     const getDonutColors = () => isLight()
       ? ["#FE7743", "#447D9B", "#8B5CF6", "#2CB67D", "#E84545", "#F59E0B"]
@@ -589,7 +596,7 @@
     window.chartIncExpArea = new ApexCharts(document.querySelector("#incomeExpenseChart"), {
       ...apexDefaults(),
       series: [
-        { name: "Budget",   data: incExpData.map((d) => d.budget) },
+        { name: "Budget", data: incExpData.map((d) => d.budget) },
         { name: "Expenses", data: incExpData.map((d) => d.expense) },
       ],
       chart: { type: "area", height: 280, parentHeightOffset: 0, background: "transparent", toolbar: { show: false } },
@@ -603,7 +610,8 @@
   }
 
   // Call init
-  initDashboard();
+  const _initDates = getFilterDates("30d");
+  initDashboard(_initDates.startDate, _initDates.endDate);
 
   // Update charts on theme change
   function updateChartsTheme() {
@@ -642,15 +650,19 @@
       legend: { labels: { colors: textClr }, fontFamily: "DM Sans" },
     };
 
-    if (window.chartMonthlyBar)  window.chartMonthlyBar.updateOptions({ ...updateOptions, colors: [primaryClr] });
-    if (window.chartWeeklyLine)  window.chartWeeklyLine.updateOptions({ ...updateOptions, colors: [purpleClr, cyanClr] });
-    if (window.chartIncExpArea)  window.chartIncExpArea.updateOptions({ ...updateOptions, colors: [successClr, purpleClr] });
-    if (window.chartCatPie)      window.chartCatPie.updateOptions({ theme: { mode }, tooltip: { theme: mode, y: { formatter: function (val) { return sym + parseFloat(val).toFixed(2); } } }, legend: { labels: { colors: textClr }, fontFamily: "DM Sans" }, colors: donutColors });
+    if (window.chartMonthlyBar) window.chartMonthlyBar.updateOptions({ ...updateOptions, colors: [primaryClr] });
+    if (window.chartWeeklyLine) window.chartWeeklyLine.updateOptions({ ...updateOptions, colors: [purpleClr, cyanClr] });
+    if (window.chartIncExpArea) window.chartIncExpArea.updateOptions({ ...updateOptions, colors: [successClr, purpleClr] });
+    if (window.chartCatPie) window.chartCatPie.updateOptions({ theme: { mode }, tooltip: { theme: mode, y: { formatter: function (val) { return sym + parseFloat(val).toFixed(2); } } }, legend: { labels: { colors: textClr }, fontFamily: "DM Sans" }, colors: donutColors });
   }
 
   window.openQuickAddModal = function () { window.openAddExpenseModal(); };
 
-  window.addEventListener('expense-saved', async (e) => { await initDashboard(); });
+  window.addEventListener('expense-saved', async (e) => {
+    const activeTab = document.querySelector("#dashboardTimeFilters .filter-tab.active");
+    const dates = activeTab ? getFilterDates(activeTab.dataset.range) : getFilterDates("30d");
+    await initDashboard(dates.startDate, dates.endDate);
+  });
 
   // ── Dashboard Filter Logic ────────────────────────────────────────
   const timeFilters = document.querySelectorAll("#dashboardTimeFilters .filter-tab");
@@ -660,9 +672,9 @@
     const d = new Date();
     const end = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString();
     let start = new Date();
-    if (range === 'today')   { start.setHours(0, 0, 0, 0); }
+    if (range === 'today') { start.setHours(0, 0, 0, 0); }
     else if (range === '7d') { start.setDate(start.getDate() - 7); }
-    else if (range === '30d'){ start.setDate(start.getDate() - 30); }
+    else if (range === '30d') { start.setDate(start.getDate() - 30); }
     else if (range === 'month') { start = new Date(start.getFullYear(), start.getMonth(), 1); }
     return { startDate: new Date(start.getTime() - (start.getTimezoneOffset() * 60000)).toISOString(), endDate: end };
   }
@@ -686,7 +698,7 @@
 
   document.getElementById("applyFilterBtn").addEventListener("click", () => {
     const start = document.getElementById("filterStartDate").value;
-    const end   = document.getElementById("filterEndDate").value;
+    const end = document.getElementById("filterEndDate").value;
     if (start && end) {
       showToast(`Dashboard updated from ${start} to ${end}`, "success");
       initDashboard(new Date(start).toISOString(), new Date(end).toISOString());
@@ -704,31 +716,31 @@
    */
   function getUrgency(nextDueDate) {
     if (!nextDueDate) return 'ok';
-    const today  = new Date(); today.setHours(0,0,0,0);
-    const due    = new Date(nextDueDate + 'T00:00:00');
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const due = new Date(nextDueDate + 'T00:00:00');
     const diffMs = due - today;
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-    if (diffDays <= 3)  return 'critical';
-    if (diffDays <= 7)  return 'warning';
+    if (diffDays <= 3) return 'critical';
+    if (diffDays <= 7) return 'warning';
     return 'ok';
   }
 
   function getDueLabel(nextDueDate) {
     if (!nextDueDate) return 'N/A';
-    const today  = new Date(); today.setHours(0,0,0,0);
-    const due    = new Date(nextDueDate + 'T00:00:00');
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const due = new Date(nextDueDate + 'T00:00:00');
     const diffMs = due - today;
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-    if (diffDays < 0)   return 'Overdue';
+    if (diffDays < 0) return 'Overdue';
     if (diffDays === 0) return 'Due Today';
     if (diffDays === 1) return 'Tomorrow';
-    if (diffDays <= 7)  return `In ${diffDays}d`;
+    if (diffDays <= 7) return `In ${diffDays}d`;
     return due.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
   async function renderRecurringWidget() {
-    const listEl  = document.getElementById('recurringWidgetList');
-    const wrapEl  = document.getElementById('recurringTableWrap');
+    const listEl = document.getElementById('recurringWidgetList');
+    const wrapEl = document.getElementById('recurringTableWrap');
     const tbodyEl = document.getElementById('recurringTableBody');
     if (!listEl) return;
 
@@ -769,9 +781,9 @@
 
       // Build table rows
       tbodyEl.innerHTML = active.slice(0, 5).map(r => {
-        const urgency  = getUrgency(r.nextDueDate);
+        const urgency = getUrgency(r.nextDueDate);
         const dueLabel = getDueLabel(r.nextDueDate);
-        const initial  = (r.title || '?')[0].toUpperCase();
+        const initial = (r.title || '?')[0].toUpperCase();
 
         const dueDateStr = r.nextDueDate
           ? new Date(r.nextDueDate + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
@@ -779,8 +791,8 @@
 
         const urgencyColors = {
           critical: { row: 'rw-row-critical', dot: '#E84545', amtClass: 'amount-critical' },
-          warning:  { row: 'rw-row-warning',  dot: '#F59E0B', amtClass: 'amount-warning'  },
-          ok:       { row: 'rw-row-ok',       dot: '#2CB67D', amtClass: 'amount-ok'       },
+          warning: { row: 'rw-row-warning', dot: '#F59E0B', amtClass: 'amount-warning' },
+          ok: { row: 'rw-row-ok', dot: '#2CB67D', amtClass: 'amount-ok' },
         };
         const u = urgencyColors[urgency];
 
@@ -807,7 +819,7 @@
 
       // Show table, hide loader
       listEl.style.display = 'none';
-      wrapEl.style.display  = 'block';
+      wrapEl.style.display = 'block';
 
     } catch (e) {
       console.error('Failed to load recurring widget', e);
