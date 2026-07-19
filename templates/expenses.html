@@ -19,10 +19,12 @@
     gap: 6px;
     box-shadow: 0 1px 2px rgba(232, 69, 69, 0.05);
   }
+
   body:not(.light-mode) .total-spent-badge {
     background: rgba(240, 112, 112, 0.08);
     border-color: rgba(240, 112, 112, 0.15);
   }
+
   .view-all-toggle-btn {
     font-size: 13px;
     font-weight: 600;
@@ -37,16 +39,19 @@
     align-items: center;
     gap: 6px;
   }
+
   .view-all-toggle-btn:hover {
     background: var(--bg-hover);
     border-color: var(--accent-primary);
     color: var(--accent-primary);
   }
+
   .modal-pagination {
     display: flex;
     align-items: center;
     gap: 16px;
   }
+
   .modal-pagination button {
     display: inline-flex;
     align-items: center;
@@ -60,13 +65,57 @@
     cursor: pointer;
     transition: var(--transition);
   }
+
   .modal-pagination button:hover:not(:disabled) {
     background: var(--bg-hover);
     border-color: var(--accent-primary);
     color: var(--accent-primary);
   }
+
   .modal-pagination button:disabled {
     opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .pagination {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .page-btn:hover:not(:disabled) {
+    background: var(--bg-hover);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+  }
+
+  .page-btn.active {
+    background: var(--accent-primary);
+    color: #fff;
+    border-color: var(--accent-primary);
+  }
+
+  .page-btn:disabled {
+    opacity: 0.4;
     cursor: not-allowed;
   }
 </style>
@@ -295,15 +344,16 @@
 
   <!-- EXPENSE HISTORY PANEL -->
   <div class="history-container fade-in">
-    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+    <div class="card-header"
+      style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
       <div>
         <div class="card-title" id="historyTitle">Expense History</div>
         <div style="font-size: 12px; color: var(--text-secondary);" id="expenseCount">0 expenses</div>
       </div>
       <div class="history-header-actions">
         <span class="total-spent-badge">Total Spent: <span id="historyTotalSpent">₹0</span></span>
-        <button class="view-all-toggle-btn" id="viewMoreExpensesBtn" onclick="openAllExpensesModal()">
-          <i class="ph ph-list-bullets"></i> View More
+        <button class="view-all-toggle-btn" id="viewAllToggleBtn" onclick="toggleViewAllMode()">
+          <i class="ph ph-arrows-out"></i> View All
         </button>
       </div>
     </div>
@@ -375,7 +425,8 @@
       </div>
     </div>
     <!-- Modal Footer with Pagination (20 per page, arrows) -->
-    <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-top: 1px solid var(--border-color); background: var(--bg-card);">
+    <div class="modal-footer"
+      style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-top: 1px solid var(--border-color); background: var(--bg-card);">
       <span style="font-size: 13px; color: var(--text-secondary);" id="modalPageIndicator">Page 1 of 1</span>
       <div class="modal-pagination">
         <button id="modalPrevPageBtn" onclick="navigateModalPage(-1)">
@@ -785,10 +836,10 @@
 
   let viewAllMode = false;
 
-  window.toggleViewAllMode = function() {
+  window.toggleViewAllMode = function () {
     viewAllMode = !viewAllMode;
     const btn = document.getElementById('viewAllToggleBtn');
-    
+
     if (viewAllMode) {
       btn.innerHTML = '<i class="ph ph-arrows-in"></i> Show Less';
       // Hide other sections of the dashboard to focus entirely on the ledger table
@@ -800,7 +851,7 @@
       if (savings) savings.style.display = 'none';
       const premGrid = document.querySelector('.premium-grid');
       if (premGrid) premGrid.style.display = 'none';
-      
+
       document.getElementById('expensePagination').style.display = 'none';
     } else {
       btn.innerHTML = '<i class="ph ph-arrows-out"></i> View All';
@@ -969,15 +1020,57 @@
     // Pagination
     const pagEl = document.getElementById('expensePagination');
     pagEl.innerHTML = '';
-    for (let i = 1; i <= totalPages; i++) {
-      const btn = document.createElement('button');
-      btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
-      btn.textContent = i;
-      btn.addEventListener('click', () => {
-        currentPage = i;
-        renderExpenses();
-      });
-      pagEl.appendChild(btn);
+
+    if (totalPages > 1) {
+      const createBtn = (label, page, isActive = false, isDisabled = false) => {
+        const btn = document.createElement('button');
+        btn.className = `page-btn ${isActive ? 'active' : ''}`;
+        btn.textContent = label;
+        if (isDisabled) {
+          btn.disabled = true;
+        } else {
+          btn.addEventListener('click', () => {
+            currentPage = page;
+            renderExpenses();
+          });
+        }
+        return btn;
+      };
+
+      // Previous button
+      pagEl.appendChild(createBtn('<', currentPage - 1, false, currentPage === 1));
+
+      let startPage = Math.max(1, currentPage - 2);
+      let endPage = Math.min(totalPages, currentPage + 2);
+
+      if (startPage > 1) {
+        pagEl.appendChild(createBtn(1, 1, currentPage === 1));
+        if (startPage > 2) {
+          const ellipsis = document.createElement('span');
+          ellipsis.textContent = '...';
+          ellipsis.style.color = 'var(--text-muted)';
+          ellipsis.style.padding = '0 6px';
+          pagEl.appendChild(ellipsis);
+        }
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        pagEl.appendChild(createBtn(i, i, i === currentPage));
+      }
+
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+          const ellipsis = document.createElement('span');
+          ellipsis.textContent = '...';
+          ellipsis.style.color = 'var(--text-muted)';
+          ellipsis.style.padding = '0 6px';
+          pagEl.appendChild(ellipsis);
+        }
+        pagEl.appendChild(createBtn(totalPages, totalPages, currentPage === totalPages));
+      }
+
+      // Next button
+      pagEl.appendChild(createBtn('>', currentPage + 1, false, currentPage === totalPages));
     }
 
     // Handle Responsive Display
@@ -1406,13 +1499,13 @@
   });
 
   // Modal Expenses List
-  window.openAllExpensesModal = function() {
+  window.openAllExpensesModal = function () {
     modalCurrentPage = 1;
     openModal('allExpensesModal');
     renderModalExpenses();
   };
 
-  window.navigateModalPage = function(direction) {
+  window.navigateModalPage = function (direction) {
     const filtered = getFilteredExpenses();
     const totalPages = Math.ceil(filtered.length / modalPerPage) || 1;
     const newPage = modalCurrentPage + direction;
@@ -1422,10 +1515,10 @@
     }
   };
 
-  window.renderModalExpenses = function() {
+  window.renderModalExpenses = function () {
     const filtered = getFilteredExpenses();
     const totalPages = Math.ceil(filtered.length / modalPerPage) || 1;
-    
+
     if (modalCurrentPage > totalPages) modalCurrentPage = totalPages;
     if (modalCurrentPage < 1) modalCurrentPage = 1;
 
@@ -1450,7 +1543,7 @@
         const cat = categories.find(c => c.name === exp.category);
         const methodStr = exp.paymentMethod || exp.method || 'N/A';
         const catName = exp.category || 'Other';
-        
+
         let badgeClass = 'badge-utilities';
         const lowerCat = catName.toLowerCase();
         if (lowerCat.includes("food")) badgeClass = "badge-food";
