@@ -247,8 +247,8 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # 5MB
 
 # ── Spectacular Settings ──
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'ExpenseTracker API',
-    'DESCRIPTION': 'Expense tracker API documentation',
+    'TITLE': 'MoneyMatrix API',
+    'DESCRIPTION': 'MoneyMatrix API documentation',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }

@@ -179,7 +179,7 @@ class NewNotificationTriggerTests(BaseAPITestCase):
                 self.test_user,
                 event_type="auth_account_disabled",
                 title="Account disabled",
-                body="Your ExpenseTracker account has been disabled."
+                body="Your MoneyMatrix account has been disabled."
             )
 
     @patch("api.notifications.send_push_notification")

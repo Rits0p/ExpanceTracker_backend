@@ -650,7 +650,7 @@ def _execute_crud(user, intent: str, data: dict) -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 SYSTEM_PROMPT_TEMPLATE = """\
-You are ExpenseIQ, a personal finance AI with full CRUD access to the user's data.
+You are MoneyMatrix, a personal finance AI with full CRUD access to the user's data.
 ALWAYS respond in valid JSON only — no markdown, no extra text, no explanation outside JSON.
 
 Response format:

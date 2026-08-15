@@ -168,7 +168,7 @@ class JWTRegisterView(APIView):
         from ..notifications import notify_auth_event
         notify_auth_event(user, event_type="account_created",
                           title="Account created",
-                          body="Welcome! Your ExpenseTracker account has been created.",
+                          body="Welcome! Your MoneyMatrix account has been created.",
                           url="/settings/")
 
         # Generate JWT tokens
@@ -233,7 +233,7 @@ class JWTLoginView(APIView):
                             user,
                             event_type="auth_account_disabled",
                             title="Account disabled",
-                            body="Your ExpenseTracker account has been disabled.",
+                            body="Your MoneyMatrix account has been disabled.",
                         )
                     except Exception:
                         pass

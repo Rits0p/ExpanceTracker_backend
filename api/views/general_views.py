@@ -349,7 +349,7 @@ class ReportPDFView(APIView):
 
         # Title
         c.setFont('Helvetica-Bold', 22)
-        c.drawCentredString(width / 2, height - 50, 'ExpenseIQ Financial Report')
+        c.drawCentredString(width / 2, height - 50, 'MoneyMatrix Financial Report')
         c.setFont('Helvetica', 11)
         c.setFillColorRGB(0.4, 0.4, 0.4)
         c.drawCentredString(

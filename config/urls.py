@@ -53,7 +53,7 @@ messaging.onBackgroundMessage((payload) => {{
     return;
   }}
   const data = payload.data || {{}};
-  const title = data.title || 'ExpenseTracker';
+  const title = data.title || 'MoneyMatrix';
   const body = data.body || 'You have a new notification.';
   return self.registration.showNotification(title, {{
     body,

@@ -8,8 +8,8 @@ function renderSidebar(activePage) {
   return `
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
-      <div class="sidebar-logo">E</div>
-      <span class="sidebar-title">ExpenseIQ</span>
+      <div class="sidebar-logo">M</div>
+      <span class="sidebar-title">MoneyMatrix</span>
     </div>
     <nav class="sidebar-nav">
       <a href="/" class="nav-item ${activePage === "dashboard" ? "active" : ""}">

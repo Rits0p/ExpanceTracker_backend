@@ -177,7 +177,7 @@ async function initializeMessaging() {
     onMessageFn(messaging, (payload) => {
       console.log('[FCM] Foreground notification payload received:', payload);
       const notification = payload.notification || {};
-      const title = notification.title || 'ExpenseTracker notification';
+      const title = notification.title || 'MoneyMatrix notification';
       const body = notification.body || 'You have a new notification.';
       window.showToast?.(title, 'success');
 

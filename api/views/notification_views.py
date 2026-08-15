@@ -78,7 +78,7 @@ class NotificationTestView(APIView):
         result = send_push_notification(
             request.user,
             event_type="test",
-            title="ExpenseTracker notifications enabled",
+            title="MoneyMatrix notifications enabled",
             body="This device can now receive expense notifications.",
             url="/settings/",
         )
