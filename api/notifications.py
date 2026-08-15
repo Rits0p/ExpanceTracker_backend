@@ -227,6 +227,8 @@ def notify_budget_status(user, expense):
         month=expense_date.month,
         year=expense_date.year,
     ).first()
+    if not budget or budget.total_monthly_budget <= 0:
+        return {"sent": 0, "skipped": "no_budget"}
     sym = _get_currency_symbol(user)
     today = expense_date.replace(hour=0, minute=0, second=0, microsecond=0)
     day_key = f"{expense_date.year}-{expense_date.month:02d}-{expense_date.day:02d}"
@@ -373,9 +375,9 @@ def notify_category_budget_exceeded(user, expense):
 
 def notify_large_expense(user, expense):
     """Notify if expense amount exceeds a large threshold relative to monthly budget."""
-    now = timezone.localtime()
+    expense_date = timezone.localtime(expense.expense_date)
     budget = Budget.objects.filter(
-        user=user, month=now.month, year=now.year
+        user=user, month=expense_date.month, year=expense_date.year
     ).first()
     threshold = 0
     if budget and budget.total_monthly_budget > 0:
@@ -387,7 +389,7 @@ def notify_large_expense(user, expense):
         return send_once(
             user,
             event_type="large_expense_created",
-            deduplication_key=f"{now.year}-{now.month:02d}-{now.day:02d}-{expense.id}",
+            deduplication_key=f"{expense_date.year}-{expense_date.month:02d}-{expense_date.day:02d}-{expense.id or 'new'}",
             title="Large expense detected",
             body=f"A large expense of {sym}{expense.amount} was added: {expense.title}.",
             url="/expenses/",

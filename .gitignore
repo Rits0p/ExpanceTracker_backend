@@ -35,3 +35,15 @@ Thumbs.db
 
 # Docker volumes (local bind mounts if any)
 docker/mysql/data/
+
+# Agent skills and UI context
+.agents/
+.gemini/
+.claude/
+.opencode/
+.ruff_cache/
+CLAUDE.md
+GEMINI.md
+
+
+
